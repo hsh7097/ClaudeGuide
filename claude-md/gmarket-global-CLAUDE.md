@@ -120,9 +120,8 @@ class ItemViewHolder(
 
 | 구성 | 역할 | 어노테이션 | 필수 여부 |
 |------|------|-----------|----------|
-| **Composable** | UI 렌더링 | - | 필수 |
-| **Info (Interface)** | 공통 스펙 정의 + 기본값 제공 | - | 다중 도메인 시 필수 |
-| **UiModel (data class)** | 렌더링용 불변 데이터 | `@Immutable` | 필수 |
+| **Composable** | UI 렌더링 (Contract 직접 참조) | - | 필수 |
+| **Info/Data (Interface)** | 공통 스펙 정의 + 기본값 제공 (Contract) | - | 다중 도메인 시 필수 |
 | **State** | 변경 가능한 UI 상태 | `@Stable` | 인터랙션 있을 때 |
 | **Params** | Data 생성용 입력 파라미터 | - | 파라미터 4개 이상 시 |
 | **Intent** | 클릭 등 이벤트 결과 | `@Immutable` | 콜백 필요 시 |
@@ -147,7 +146,7 @@ domain/home/.../composable/common/bottomAction/
 ```
 benchmarkable/common/itemcardv2/priceWithCoupon/
 ├── PriceWithCouponCompose.kt    # @Composable UI
-├── PriceWithCouponInfo.kt       # interface (기본값 제공) + UiModel + toComposeData()
+├── PriceWithCouponInfo.kt       # interface (기본값 제공, Contract)
 
 domain/home/.../itemcardv2/priceWithCoupon/
 ├── HomePriceWithCouponInfoSealedV2.kt   # sealed class Mapper
@@ -164,13 +163,10 @@ domain/search/.../itemcardv2/priceWithCoupon/
 ```
 [도메인 원본 데이터]
     │
-    ▼ Mapper (sealed class)
-[Info] ← Interface 구현체 (도메인별 분기 로직 포함)
+    ▼ Factory/Mapper.from(...)
+[Info/Data] ← Contract (Interface 또는 data class)
     │
-    ▼ toComposeData() 확장 함수
-[UiModel] ← @Immutable data class (렌더링 전용)
-    │
-    ▼
+    ▼ 직접 참조 (별도 변환 계층 없음)
 [Composable] ─── 클릭 등 이벤트 ───▶ [Intent]
                                         │
                                         ▼
@@ -202,28 +198,6 @@ interface PriceWithCouponInfo {
     // Accessibility용 텍스트 생성
     fun createDescriptionText(): String { ... }
 }
-```
-
-**UiModel 정의 (benchmarkable)**
-```kotlin
-@Immutable
-data class PriceWithCouponUiModel(
-    val priceInfoSize: PriceInfoSize,
-    val tagImage: String?,
-    val discountRate: AnnotatedString?,
-    val itemPrice: AnnotatedString?,
-    val descriptionText: String
-)
-
-// 변환 함수 - @Composable 컨텍스트에서 AnnotatedString 생성
-@Composable
-fun PriceWithCouponInfo.toComposeData() = PriceWithCouponUiModel(
-    priceInfoSize = priceInfoSize,
-    tagImage = tagImage,
-    discountRate = discountRateDisplayText?.toAnnotatedString(),
-    itemPrice = itemPriceDisplayTexts?.toAnnotatedString(),
-    descriptionText = createDescriptionText()
-)
 ```
 
 **sealed class Mapper (도메인)**
@@ -327,21 +301,20 @@ sealed interface HomeActionIntent {
 }
 ```
 
-**Composable 사용**
+**Composable 사용 (Contract 직접 참조)**
 ```kotlin
 @Composable
 fun PriceWithCouponCompose(
-    info: PriceWithCouponInfo,
+    info: PriceWithCouponInfo,  // Contract 직접 참조
     modifier: Modifier = Modifier
 ) {
-    val uiModel = info.toComposeData()
-
     Column(
         modifier = modifier.semantics {
-            contentDescription = uiModel.descriptionText
+            contentDescription = info.createDescriptionText()
         }
     ) {
-        // 렌더링 로직
+        // info의 프로퍼티를 직접 참조하여 렌더링
+        // 별도 UiModel/toComposeData() 변환 없이 간결하게 유지
     }
 }
 ```
@@ -491,30 +464,26 @@ data class HomeItemCardData(
 
 #### 8. Preview 구조
 
-Preview 파일은 **uiTest 소스셋**에 동일 패키지 경로로 배치:
+Preview 파일은 **debug 소스셋**에 동일 패키지 경로로 배치 (release 빌드에서 제외):
 
 ```
 src/main/java/.../priceWithCoupon/
 ├── PriceWithCouponCompose.kt
 └── PriceWithCouponInfo.kt
 
-src/uiTest/java/.../priceWithCoupon/
-├── PriceComposePreview.kt
-└── provider/
-    └── PriceComposeProvider.kt
+src/debug/java/.../priceWithCoupon/
+└── PriceComposePreview.kt
 ```
 
 **Preview 작성**
 ```kotlin
-// uiTest/.../PriceComposePreview.kt
+// debug/.../PriceComposePreview.kt
 @Preview(showBackground = true)
 @Preview(showBackground = true, widthDp = 160)  // 다양한 사이즈
 @Preview(showBackground = true, widthDp = 104)
 @Composable
 fun PriceTextPreview() {
-    testPriceInfo.toComposeData().let {
-        PriceWithCouponCompose(it)
-    }
+    PriceWithCouponCompose(info = testPriceInfo)
 }
 
 // Preview용 테스트 데이터 - private
@@ -527,7 +496,7 @@ private val testPriceInfo = object : PriceWithCouponInfo {
 
 **PreviewParameterProvider 사용**
 ```kotlin
-// uiTest/.../provider/ThumbnailComposeProvider.kt
+// debug/.../PriceComposePreview.kt (테스트 데이터 + Provider + Preview를 한 파일에)
 class ThumbnailComposeProvider : PreviewParameterProvider<ThumbnailData> {
     override val values: Sequence<ThumbnailData>
         get() = sequenceOf(
@@ -542,7 +511,6 @@ class ThumbnailComposeProvider : PreviewParameterProvider<ThumbnailData> {
     }
 }
 
-// uiTest/.../preview/ThumbnailComposePreview.kt
 @Preview(widthDp = 160)
 @Composable
 fun ThumbnailComposePreview(
@@ -554,9 +522,9 @@ fun ThumbnailComposePreview(
 ```
 
 **Preview 규칙**
-- `@Preview` 함수는 **uiTest** 소스셋에만 배치 (main 빌드에서 제외)
+- `@Preview` 함수는 **debug** 소스셋에만 배치 (release 빌드에서 제외)
+- 테스트 데이터 + PreviewParameterProvider + Preview 함수를 하나의 파일에 배치
 - 다양한 사이즈/상태를 커버하는 Preview 작성
-- 복잡한 데이터는 `PreviewParameterProvider` 사용
 - Preview용 테스트 데이터는 private으로 선언
 - Interactive Mode로 동적 상태 테스트 가능
 
@@ -578,7 +546,6 @@ fun ThumbnailComposePreview(
 | 구성 요소 | 네이밍 패턴 | 예시 |
 |----------|------------|------|
 | Interface | `{기능}Info`, `{기능}Data` | `PriceWithCouponInfo`, `ThumbnailData` |
-| UiModel | `{기능}UiModel` | `PriceWithCouponUiModel` |
 | Composable | `{기능}Compose` | `PriceWithCouponCompose` |
 | State | `{기능}State` | `HomeActionState` |
 | Intent | `{기능}Intent` | `HomeActionIntent` |
@@ -607,17 +574,37 @@ interface PriceWithCouponInfo {
     }
 }
 
-// Composable에서 semantics 적용
+// Composable에서 semantics 적용 (Contract 직접 참조)
 Column(
     modifier = modifier.clearAndSetSemantics {
-        contentDescription = uiModel.descriptionText
+        contentDescription = info.createDescriptionText()
     }
 ) {
     // 하위 요소들은 clearAndSetSemantics { } 로 접근성에서 제외
     Text(
-        text = uiModel.discountRate,
+        text = info.discountRateDisplayText?.text.orEmpty(),
         modifier = Modifier.clearAndSetSemantics { }
     )
+}
+```
+
+---
+
+#### 12. Composable-Contract 연결
+
+- Composable은 Contract(Info/Data) interface를 **직접 참조**하여 렌더링
+- 별도 UiModel이나 toComposeData() 변환 계층 없이 간결하게 유지
+- 포맷팅(NumberFormat 등)은 Composable 내부에서 처리
+
+```kotlin
+@Composable
+fun TransactionCardCompose(
+    info: TransactionCardInfo,  // Contract 직접 참조
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val numberFormat = NumberFormat.getNumberInstance(Locale.KOREA)
+    // info의 프로퍼티를 직접 참조하여 렌더링
 }
 ```
 
