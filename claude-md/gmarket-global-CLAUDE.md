@@ -14,6 +14,22 @@
 
 **사용 방법**: 트리거 키워드가 감지되면 해당 파일을 Read 도구로 읽은 후 가이드에 따라 응답한다.
 
+### 가이드/스킬 작업 시 필수 절차
+
+가이드나 스킬 관련 작업(수정, 생성, 조회)을 할 때는 반드시:
+
+1. **작업 전**: ClaudeGuide 저장소를 최신 상태로 갱신
+   ```bash
+   cd ~/Documents/Android/ClaudeGuide && git pull
+   ```
+
+2. **작업 후**: 가이드/스킬 파일이 변경되었으면 자동으로 커밋 & push
+   ```bash
+   cd ~/Documents/Android/ClaudeGuide && git add -A && git commit -m "가이드 업데이트: [변경 요약]" && git push
+   ```
+
+> 심볼릭 링크로 연결된 `~/.claude/guides/` 파일을 수정하면 ClaudeGuide 저장소의 원본이 변경된다. 반드시 커밋 & push 한다.
+
 ---
 
 ## Claude 역할 정의
