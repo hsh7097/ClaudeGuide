@@ -342,6 +342,44 @@ interface InfoLabelsData {
 
 ---
 
+## 15. Preview 규칙
+
+- Preview 파일은 **debug 소스셋**에 동일 패키지 경로로 배치 (release 빌드에서 제외)
+- 테스트 데이터 + PreviewParameterProvider + Preview 함수를 하나의 파일에 배치
+- Preview용 테스트 데이터는 private으로 선언
+- 다양한 상태를 커버하는 Preview 작성 (정상, 엣지케이스 등)
+
+```
+src/main/java/.../transaction/card/
+├── TransactionCardCompose.kt
+└── TransactionCardInfo.kt
+
+src/debug/java/.../transaction/card/
+└── TransactionCardPreview.kt
+```
+
+---
+
+## 16. Composable-Contract 연결
+
+- Composable은 Contract(Info/Data) interface를 **직접 참조**하여 렌더링
+- 별도 UiModel이나 toComposeData() 변환 계층 없이 간결하게 유지
+- 포맷팅(NumberFormat 등)은 Composable 내부에서 처리
+
+```kotlin
+@Composable
+fun TransactionCardCompose(
+    info: TransactionCardInfo,  // Contract 직접 참조
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val numberFormat = NumberFormat.getNumberInstance(Locale.KOREA)
+    // info의 프로퍼티를 직접 참조하여 렌더링
+}
+```
+
+---
+
 ## 참고
 
 - 상세 코드 예시 및 실제 파일 매핑: `docs/ui-domain-commonization-guide.md`
