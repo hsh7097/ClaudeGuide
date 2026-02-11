@@ -1,13 +1,16 @@
 #!/bin/bash
 # ClaudeGuide Setup Script
-# 새 환경(회사/집 PC)에서 한 번만 실행하면 심볼릭 링크가 설정됩니다.
+# 새 환경(회사/집 PC)에서 한 번만 실행하면 가이드 파일이 설정됩니다.
+#
+# macOS/Linux: 심볼릭 링크 생성
+# Windows (Git Bash): 파일 복사 (심볼릭 링크에 관리자 권한 필요)
 #
 # 사용법:
 #   chmod +x setup.sh
 #   ./setup.sh
 #
 # 옵션:
-#   ./setup.sh --unlink    # 심볼릭 링크 제거
+#   ./setup.sh --unlink    # 설정 제거
 
 set -e
 
@@ -15,6 +18,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_HOME="$HOME/.claude"
 GUIDES_DIR="$CLAUDE_HOME/guides"
+
+# ─── OS 감지 ───
+IS_WINDOWS=false
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "mingw"* ]] || [[ "$OSTYPE" == "cygwin" ]]; then
+    IS_WINDOWS=true
+fi
 
 # ─── 색상 ───
 GREEN='\033[0;32m'
@@ -27,51 +36,71 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-create_symlink() {
+# 파일 설치 (심볼릭 링크 또는 복사)
+install_file() {
     local source="$1"
     local target="$2"
 
-    if [ -L "$target" ]; then
-        local existing_source
-        existing_source=$(readlink "$target")
-        if [ "$existing_source" = "$source" ]; then
-            log_info "이미 링크됨: $(basename "$target")"
-            return 0
-        else
-            log_warn "기존 링크 교체: $(basename "$target") ($existing_source -> $source)"
-            rm "$target"
+    if [ "$IS_WINDOWS" = true ]; then
+        # Windows: 파일 복사
+        if [ -f "$target" ]; then
+            if diff -q "$source" "$target" > /dev/null 2>&1; then
+                log_info "이미 최신: $(basename "$target")"
+                return 0
+            else
+                log_warn "파일 업데이트: $(basename "$target")"
+            fi
         fi
-    elif [ -f "$target" ]; then
-        log_warn "기존 파일 백업: ${target} -> ${target}.bak"
-        mv "$target" "${target}.bak"
-    fi
+        cp "$source" "$target"
+        log_info "복사 완료: $(basename "$target")"
+    else
+        # macOS/Linux: 심볼릭 링크
+        if [ -L "$target" ]; then
+            local existing_source
+            existing_source=$(readlink "$target")
+            if [ "$existing_source" = "$source" ]; then
+                log_info "이미 링크됨: $(basename "$target")"
+                return 0
+            else
+                log_warn "기존 링크 교체: $(basename "$target") ($existing_source -> $source)"
+                rm "$target"
+            fi
+        elif [ -f "$target" ]; then
+            log_warn "기존 파일 백업: ${target} -> ${target}.bak"
+            mv "$target" "${target}.bak"
+        fi
 
-    ln -sf "$source" "$target"
-    log_info "링크 생성: $(basename "$target")"
+        ln -sf "$source" "$target"
+        log_info "링크 생성: $(basename "$target")"
+    fi
 }
 
-remove_symlink() {
+# 파일 제거
+remove_file() {
     local target="$1"
-    if [ -L "$target" ]; then
+    if [ -L "$target" ] || [ -f "$target" ]; then
         rm "$target"
-        log_info "링크 제거: $(basename "$target")"
+        log_info "제거: $(basename "$target")"
     fi
 }
 
 # ─── unlink 모드 ───
 if [ "$1" = "--unlink" ]; then
-    echo "=== ClaudeGuide 심볼릭 링크 제거 ==="
+    echo "=== ClaudeGuide 설정 제거 ==="
     echo ""
 
-    # guides 링크 제거
+    # guides 제거
     for guide in "$SCRIPT_DIR"/guides/*.md; do
         [ -f "$guide" ] || continue
         filename=$(basename "$guide")
-        remove_symlink "$GUIDES_DIR/$filename"
+        remove_file "$GUIDES_DIR/$filename"
     done
 
+    # 글로벌 CLAUDE.md 제거
+    remove_file "$CLAUDE_HOME/CLAUDE.md"
+
     echo ""
-    log_info "심볼릭 링크 제거 완료"
+    log_info "설정 제거 완료"
     exit 0
 fi
 
@@ -82,50 +111,65 @@ echo "=========================================="
 echo ""
 echo "소스: $SCRIPT_DIR"
 echo "대상: $CLAUDE_HOME"
+if [ "$IS_WINDOWS" = true ]; then
+    echo "모드: 파일 복사 (Windows)"
+else
+    echo "모드: 심볼릭 링크 (macOS/Linux)"
+fi
 echo ""
 
 # 1. ~/.claude/guides 디렉토리 생성
 mkdir -p "$GUIDES_DIR"
 log_info "디렉토리 확인: $GUIDES_DIR"
 
-# 2. 가이드 파일 심볼릭 링크
+# 2. 가이드 파일 설치
 echo ""
-echo "--- 가이드 파일 링크 ---"
+echo "--- 가이드 파일 ---"
 for guide in "$SCRIPT_DIR"/guides/*.md; do
     [ -f "$guide" ] || continue
     filename=$(basename "$guide")
-    create_symlink "$guide" "$GUIDES_DIR/$filename"
+    install_file "$guide" "$GUIDES_DIR/$filename"
 done
 
-# 3. 프로젝트 스킬 링크 안내
+# 3. 글로벌 CLAUDE.md 설치
 echo ""
-echo "--- 프로젝트 스킬 링크 ---"
+echo "--- 글로벌 CLAUDE.md ---"
+install_file "$SCRIPT_DIR/claude-md/gmarket-global-CLAUDE.md" "$CLAUDE_HOME/CLAUDE.md"
+
+# 4. 프로젝트 스킬 안내
 echo ""
-log_info "프로젝트별 스킬은 해당 프로젝트의 .claude/skills/ 에 수동으로 링크해야 합니다."
+echo "--- 프로젝트 스킬 ---"
 echo ""
-echo "  예시 (Gmarket 프로젝트):"
-echo "    mkdir -p ~/Documents/Android/Gmarket/.claude/skills"
-echo "    ln -sf $SCRIPT_DIR/skills/ui-commonization \\"
-echo "           ~/Documents/Android/Gmarket/.claude/skills/ui-commonization"
+log_info "프로젝트별 스킬은 해당 프로젝트의 .claude/skills/ 에 수동으로 설정해야 합니다."
+echo ""
+if [ "$IS_WINDOWS" = true ]; then
+    echo "  예시 (Gmarket 프로젝트 - Windows 복사):"
+    echo "    mkdir -p ~/AndroidStudioProjects/Gmarket/.claude/skills/ui-commonization"
+    echo "    cp $SCRIPT_DIR/skills/ui-commonization/SKILL.md \\"
+    echo "       ~/AndroidStudioProjects/Gmarket/.claude/skills/ui-commonization/SKILL.md"
+else
+    echo "  예시 (Gmarket 프로젝트 - 심볼릭 링크):"
+    echo "    mkdir -p ~/Documents/Android/Gmarket/.claude/skills"
+    echo "    ln -sf $SCRIPT_DIR/skills/ui-commonization \\"
+    echo "           ~/Documents/Android/Gmarket/.claude/skills/ui-commonization"
+fi
 echo ""
 
-# 4. CLAUDE.md 안내
-echo "--- CLAUDE.md ---"
-echo ""
-log_info "CLAUDE.md는 프로젝트마다 다를 수 있으므로 자동 링크하지 않습니다."
-echo "  참고용 파일 위치:"
-echo "    - 글로벌:  $SCRIPT_DIR/claude-md/gmarket-global-CLAUDE.md"
-echo "    - 프로젝트: $SCRIPT_DIR/claude-md/gmarket-project-CLAUDE.md"
-echo ""
-echo "  필요시 수동 복사:"
-echo "    cp $SCRIPT_DIR/claude-md/gmarket-global-CLAUDE.md ~/.claude/CLAUDE.md"
-echo ""
+# 5. Windows 주의사항
+if [ "$IS_WINDOWS" = true ]; then
+    echo "--- Windows 주의사항 ---"
+    echo ""
+    log_warn "Windows에서는 파일 복사 방식이므로, 원본 수정 시 ./setup.sh를 다시 실행하세요."
+    log_info "또는 Claude가 가이드 작업 시 자동으로 양쪽을 동기화합니다."
+    echo ""
+fi
 
-# 5. 완료
+# 6. 완료
 echo "=========================================="
 echo -e "  ${GREEN}설정 완료${NC}"
 echo "=========================================="
 echo ""
 echo "검증:"
 echo "  ls -la $GUIDES_DIR/"
+echo "  ls -la $CLAUDE_HOME/CLAUDE.md"
 echo ""

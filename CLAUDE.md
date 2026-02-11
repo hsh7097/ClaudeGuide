@@ -14,7 +14,7 @@
 ClaudeGuide/
 ├── CLAUDE.md              # 이 파일 (프로젝트 메타)
 ├── README.md              # 사용법 안내
-├── setup.sh               # 환경 설정 스크립트 (심볼릭 링크)
+├── setup.sh               # 환경 설정 스크립트 (macOS: 심볼릭 링크 / Windows: 파일 복사)
 ├── guides/                # ~/.claude/guides/ 에 링크될 가이드 파일
 │   ├── ui-domain-commonization.md
 │   ├── bi-writing.md
@@ -53,9 +53,16 @@ git pull
 
 ## 파일 수정 시 주의
 
+### macOS/Linux (심볼릭 링크 환경)
 - `guides/` 파일 수정 → 심볼릭 링크를 통해 `~/.claude/guides/`에 자동 반영
 - `skills/` 파일 수정 → 심볼릭 링크가 설정된 프로젝트에 자동 반영
-- `claude-md/` 파일 수정 → 참조용이므로 실제 CLAUDE.md에는 수동 복사 필요
+
+### Windows (파일 복사 환경)
+- `guides/` 파일 수정 → `~/.claude/guides/`에도 복사 필요
+- `claude-md/` 파일 수정 → `~/.claude/CLAUDE.md`에도 복사 필요
+- `skills/` 파일 수정 → 해당 프로젝트의 `.claude/skills/`에도 복사 필요
+
+### 공통
 - `docs/` 파일 수정 → 참조용, 프로젝트 docs/에는 수동 복사 필요
 
 ## Claude 작업 지침
@@ -84,6 +91,22 @@ Claude가 이 저장소의 파일(`guides/`, `skills/`, `docs/`, `claude-md/`)�
 4. 사용자에게 push 완료를 알림
 
 심볼릭 링크로 연결된 파일은 `~/.claude/guides/`나 프로젝트 `.claude/skills/`에서 수정해도 이 저장소의 파일이 실제로 변경되므로, 동일하게 커밋 & push 한다.
+
+### Windows 환경 동기화 규칙
+
+Windows에서는 파일 복사 방식이므로, Claude가 이 저장소의 파일을 수정한 경우:
+1. 커밋 & push 후
+2. `~/.claude/`에 배포된 파일도 함께 업데이트한다
+
+```bash
+# guides/ 수정 시
+cp guides/*.md ~/.claude/guides/
+
+# claude-md/gmarket-global-CLAUDE.md 수정 시
+cp claude-md/gmarket-global-CLAUDE.md ~/.claude/CLAUDE.md
+```
+
+반대로, `~/.claude/` 쪽 파일을 직접 수정한 경우에는 이 저장소에도 역으로 복사한 뒤 커밋 & push 한다.
 
 ### 일반 작업 시
 
