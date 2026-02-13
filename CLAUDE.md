@@ -18,7 +18,8 @@ ClaudeGuide/
 ├── guides/                # ~/.claude/guides/ 에 링크될 가이드 파일
 │   ├── ui-domain-commonization.md
 │   ├── bi-writing.md
-│   └── yearly-review.md
+│   ├── yearly-review.md
+│   └── karpathy-guidelines.md
 ├── skills/                # 프로젝트 .claude/skills/ 에 링크될 스킬
 │   └── ui-commonization/
 │       └── SKILL.md
