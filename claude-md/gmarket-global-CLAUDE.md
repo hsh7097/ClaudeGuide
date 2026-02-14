@@ -11,6 +11,7 @@
 | `bi`, `BI`, `BI 작성`, `기술 공유 문서` | `~/.claude/guides/bi-writing.md` | BI(Bi-Weekly) 기술 공유 문서 작성 |
 | `평가`, `연말평가`, `본인평가`, `성과 정리` | `~/.claude/guides/yearly-review.md` | 연말평가 본인평가 작성 |
 | `공통화`, `UI 공통화`, `도메인 공통화`, `Contract`, `Factory 패턴` | 스킬: `/공통화` (프로젝트 `.claude/skills/ui-commonization/SKILL.md`) | UI-도메인 공통화 작업 가이드 |
+| `커밋`, `commit`, `푸시`, `push` | 스킬: `/커밋` (프로젝트 `.claude/skills/safe-commit/SKILL.md`) | 셀프 리뷰 후 안전 커밋 (브랜치 보호 포함) |
 
 **사용 방법**: 트리거 키워드가 감지되면 해당 파일을 Read 도구로 읽은 후 가이드에 따라 응답한다.
 
