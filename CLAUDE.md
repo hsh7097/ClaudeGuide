@@ -14,14 +14,17 @@
 ClaudeGuide/
 ├── CLAUDE.md              # 이 파일 (프로젝트 메타)
 ├── README.md              # 사용법 안내
-├── setup.sh               # 환경 설정 스크립트 (macOS: 심볼릭 링크 / Windows: 파일 복사)
+├── setup.sh               # 환경 설정 스크립트 (가이드 + 스킬 자동 배포)
+├── projects.conf          # 스킬 배포 대상 프로젝트 목록
 ├── guides/                # ~/.claude/guides/ 에 링크될 가이드 파일
 │   ├── ui-domain-commonization.md
 │   ├── bi-writing.md
 │   ├── yearly-review.md
 │   └── karpathy-guidelines.md
-├── skills/                # 프로젝트 .claude/skills/ 에 링크될 스킬
-│   └── ui-commonization/
+├── skills/                # 프로젝트 .claude/skills/ 에 자동 배포될 스킬
+│   ├── ui-commonization/
+│   │   └── SKILL.md
+│   └── safe-commit/
 │       └── SKILL.md
 ├── claude-md/             # 프로젝트별 CLAUDE.md 백업/참조
 │   ├── gmarket-global-CLAUDE.md    # ~/.claude/CLAUDE.md

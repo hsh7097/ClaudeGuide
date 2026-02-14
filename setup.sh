@@ -136,23 +136,58 @@ echo ""
 echo "--- 글로벌 CLAUDE.md ---"
 install_file "$SCRIPT_DIR/claude-md/gmarket-global-CLAUDE.md" "$CLAUDE_HOME/CLAUDE.md"
 
-# 4. 프로젝트 스킬 안내
+# 4. 프로젝트별 스킬 자동 배포
 echo ""
-echo "--- 프로젝트 스킬 ---"
-echo ""
-log_info "프로젝트별 스킬은 해당 프로젝트의 .claude/skills/ 에 수동으로 설정해야 합니다."
-echo ""
-if [ "$IS_WINDOWS" = true ]; then
-    echo "  예시 (Gmarket 프로젝트 - Windows 복사):"
-    echo "    mkdir -p ~/AndroidStudioProjects/Gmarket/.claude/skills/ui-commonization"
-    echo "    cp $SCRIPT_DIR/skills/ui-commonization/SKILL.md \\"
-    echo "       ~/AndroidStudioProjects/Gmarket/.claude/skills/ui-commonization/SKILL.md"
+echo "--- 프로젝트 스킬 배포 ---"
+
+# 대상 프로젝트 목록 (projects.conf가 있으면 사용, 없으면 기본값)
+PROJECTS_CONF="$SCRIPT_DIR/projects.conf"
+PROJECTS=()
+
+if [ -f "$PROJECTS_CONF" ]; then
+    while IFS= read -r line; do
+        # 빈 줄, 주석(#) 무시
+        [[ -z "$line" || "$line" == \#* ]] && continue
+        # ~ 를 $HOME으로 치환
+        line="${line/#\~/$HOME}"
+        PROJECTS+=("$line")
+    done < "$PROJECTS_CONF"
+    log_info "projects.conf에서 ${#PROJECTS[@]}개 프로젝트 로드"
 else
-    echo "  예시 (Gmarket 프로젝트 - 심볼릭 링크):"
-    echo "    mkdir -p ~/Documents/Android/Gmarket/.claude/skills"
-    echo "    ln -sf $SCRIPT_DIR/skills/ui-commonization \\"
-    echo "           ~/Documents/Android/Gmarket/.claude/skills/ui-commonization"
+    log_warn "projects.conf 없음. 스킬 배포 건너뜀."
+    log_info "프로젝트를 등록하려면 projects.conf를 생성하세요:"
+    echo ""
+    echo "  예시 (projects.conf):"
+    echo "    # 한 줄에 프로젝트 경로 하나"
+    echo "    ~/AndroidStudioProjects/MoneyTalk"
+    echo "    ~/AndroidStudioProjects/Gmarket"
+    echo ""
 fi
+
+# 각 프로젝트에 모든 스킬 배포
+for project in "${PROJECTS[@]}"; do
+    if [ ! -d "$project" ]; then
+        log_warn "프로젝트 경로 없음 (건너뜀): $project"
+        continue
+    fi
+
+    echo ""
+    log_info "프로젝트: $project"
+
+    for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+        [ -d "$skill_dir" ] || continue
+        skill_name=$(basename "$skill_dir")
+        target_dir="$project/.claude/skills/$skill_name"
+
+        mkdir -p "$target_dir"
+
+        for skill_file in "$skill_dir"*.md; do
+            [ -f "$skill_file" ] || continue
+            filename=$(basename "$skill_file")
+            install_file "$skill_file" "$target_dir/$filename"
+        done
+    done
+done
 echo ""
 
 # 5. Windows 주의사항
