@@ -20,12 +20,12 @@
 
 1. **작업 전**: ClaudeGuide 저장소를 최신 상태로 갱신
    ```bash
-   cd ~/Documents/Android/ClaudeGuide && git pull
+   cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide && git pull
    ```
 
 2. **작업 후**: 가이드/스킬 파일이 변경되었으면 자동으로 커밋 & push
    ```bash
-   cd ~/Documents/Android/ClaudeGuide && git add -A && git commit -m "가이드 업데이트: [변경 요약]" && git push
+   cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide && git add -A && git commit -m "가이드 업데이트: [변경 요약]" && git push
    ```
 
 > 심볼릭 링크로 연결된 `~/.claude/guides/` 파일을 수정하면 ClaudeGuide 저장소의 원본이 변경된다. 반드시 커밋 & push 한다.
@@ -781,6 +781,20 @@ Claude가 로그를 추가할 때 이 형식을 따른다.
 
 - 사용자가 "동일하게 발생해" 또는 "문제가 해결되지 않았어"라고 응답하면 해당 수정을 **즉시 원복**
 - 원복 후 다른 접근법 시도
+
+---
+
+## 작업 완료 규칙
+
+### 셀프 리뷰 필수
+
+**모든 작업 완료 후** 아래 절차를 수행한다:
+
+1. 변경된 코드를 다시 **Read**로 읽어서 검토
+2. 문제 발견 시 **즉시 수정** (불필요한 코드, 잘못된 로직, thread-safety 등)
+3. 수정 완료 후 작업 완료 보고
+
+> 셀프 리뷰 없이 작업 완료를 보고하지 않는다.
 
 ---
 

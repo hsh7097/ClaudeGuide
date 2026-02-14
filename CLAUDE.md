@@ -34,21 +34,21 @@ ClaudeGuide/
 
 ### 새 환경 설정
 ```bash
-git clone https://github.com/hsh7097/ClaudeGuide.git ~/Documents/Android/ClaudeGuide
-cd ~/Documents/Android/ClaudeGuide
+git clone https://github.com/hsh7097/ClaudeGuide.git C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide
+cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide
 ./setup.sh
 ```
 
 ### 수정 후 동기화
 ```bash
-cd ~/Documents/Android/ClaudeGuide
+cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide
 # 파일 수정 후
 git add . && git commit -m "가이드 업데이트" && git push
 ```
 
 ### 다른 PC에서 동기화
 ```bash
-cd ~/Documents/Android/ClaudeGuide
+cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide
 git pull
 ```
 
@@ -72,12 +72,12 @@ git pull
 
 **작업 전**: 반드시 이 ClaudeGuide 저장소를 최신 상태로 갱신한 후 작업을 시작한다.
 ```bash
-cd ~/Documents/Android/ClaudeGuide && git pull
+cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide && git pull
 ```
 
 **작업 후**: 가이드/스킬/문서 파일을 수정했다면, 작업 완료 시 자동으로 커밋 & push 한다.
 ```bash
-cd ~/Documents/Android/ClaudeGuide
+cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide
 git add -A
 git commit -m "가이드 업데이트: [변경 요약]"
 git push
