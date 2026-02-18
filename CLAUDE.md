@@ -24,7 +24,9 @@ ClaudeGuide/
 ├── skills/                # 프로젝트 .claude/skills/ 에 자동 배포될 스킬
 │   ├── ui-commonization/
 │   │   └── SKILL.md
-│   └── safe-commit/
+│   ├── safe-commit/
+│   │   └── SKILL.md
+│   └── docs-sync/
 │       └── SKILL.md
 ├── claude-md/             # 프로젝트별 CLAUDE.md 백업/참조
 │   ├── gmarket-global-CLAUDE.md    # ~/.claude/CLAUDE.md
