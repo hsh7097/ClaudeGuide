@@ -21,6 +21,10 @@ ClaudeGuide/
 │   ├── bi-writing.md
 │   ├── yearly-review.md
 │   └── karpathy-guidelines.md
+├── hooks/                 # ~/.claude/hooks/ 에 배포될 자동 Hook 스크립트
+│   ├── risky-keyword-review.sh   # 위험 키워드 감지 → 경량 리뷰
+│   ├── large-code-review.sh      # 80줄 이상 코드 → 경량 검수
+│   └── session-length-check.sh   # 25턴 이상 → /정리 제안
 ├── skills/                # 프로젝트 .claude/skills/ 에 자동 배포될 스킬
 │   ├── dev-mode/          # /개발 — 기본 실행 모드 (최소 변경 + 자기 검수)
 │   │   └── SKILL.md
