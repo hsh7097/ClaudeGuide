@@ -22,11 +22,21 @@ ClaudeGuide/
 │   ├── yearly-review.md
 │   └── karpathy-guidelines.md
 ├── skills/                # 프로젝트 .claude/skills/ 에 자동 배포될 스킬
-│   ├── ui-commonization/
+│   ├── dev-mode/          # /개발 — 기본 실행 모드 (최소 변경 + 자기 검수)
 │   │   └── SKILL.md
-│   ├── safe-commit/
+│   ├── plan-mode/         # /계획 — 설계 강제 모드 (코드 작성 금지)
 │   │   └── SKILL.md
-│   └── docs-sync/
+│   ├── review-mode/       # /리뷰 — 자동 검수 (시니어 개발자 페르소나)
+│   │   └── SKILL.md
+│   ├── docs-sync/         # /문서 — 외부 기억 (맥락 복원/저장)
+│   │   └── SKILL.md
+│   ├── session-reset/     # /정리 — 세션 맥락 리셋
+│   │   └── SKILL.md
+│   ├── safe-commit/       # /커밋 — 안전 커밋 (셀프 리뷰 포함)
+│   │   └── SKILL.md
+│   ├── ui-commonization/  # /공통화 — UI-도메인 공통화
+│   │   └── SKILL.md
+│   └── bi-writing/        # /bi — BI 기술 공유 문서
 │       └── SKILL.md
 ├── claude-md/             # 프로젝트별 CLAUDE.md 백업/참조
 │   ├── gmarket-global-CLAUDE.md    # ~/.claude/CLAUDE.md
