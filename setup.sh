@@ -153,7 +153,25 @@ else
     log_info "hooks/ 디렉토리 없음. Hook 배포 건너뜀."
 fi
 
-# 4. 프로젝트별 스킬 자동 배포
+# 3.6. 전역 스킬 배포 (~/.claude/skills/)
+GLOBAL_SKILLS_DIR="$CLAUDE_HOME/skills"
+echo ""
+echo "--- 전역 스킬 배포 ---"
+for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_name=$(basename "$skill_dir")
+    target_dir="$GLOBAL_SKILLS_DIR/$skill_name"
+
+    mkdir -p "$target_dir"
+
+    for skill_file in "$skill_dir"*.md; do
+        [ -f "$skill_file" ] || continue
+        filename=$(basename "$skill_file")
+        install_file "$skill_file" "$target_dir/$filename"
+    done
+done
+
+# 4. 프로젝트별 스킬 자동 배포 (추가 프로젝트용, 전역과 별도)
 echo ""
 echo "--- 프로젝트 스킬 배포 ---"
 
