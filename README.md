@@ -1,6 +1,6 @@
 # ClaudeGuide
 
-Claude Code에서 사용하는 스킬, 가이드, CLAUDE.md 파일을 중앙 관리하는 저장소.
+Claude Code와 Codex에서 사용하는 스킬, 가이드, CLAUDE.md 파일을 중앙 관리하는 저장소.
 
 ## Quick Start
 
@@ -26,9 +26,14 @@ ClaudeGuide/
 │   ├── ui-domain-commonization.md   # UI-도메인 공통화 가이드 (요약)
 │   ├── bi-writing.md                # BI 기술 공유 문서 작성 가이드
 │   └── yearly-review.md             # 연말평가 작성 가이드
-├── skills/                # 프로젝트 .claude/skills/ 에 심볼릭 링크
+├── skills/                # ~/.claude/skills/ 및 프로젝트 .claude/skills/ 에 배포
+│   ├── dev-mode/
+│   ├── review-mode/
 │   └── ui-commonization/
-│       └── SKILL.md       # /공통화 슬래시 커맨드 스킬
+├── codex-skills/          # ~/.codex/skills/ 공유용 스냅샷
+│   ├── local/             # setup.sh가 ~/.codex/skills/ 로 배포
+│   └── system/            # Codex 기본 시스템 스킬 참고용 스냅샷
+├── codex-plugin-skills/   # Codex plugin cache 스킬 참고용 스냅샷
 ├── claude-md/             # CLAUDE.md 백업/참조
 │   ├── gmarket-global-CLAUDE.md
 │   └── gmarket-project-CLAUDE.md
@@ -49,9 +54,27 @@ ClaudeGuide/
 
 ## 스킬 목록
 
-| 스킬 | 슬래시 커맨드 | 설명 |
-|------|-------------|------|
-| `skills/ui-commonization/SKILL.md` | `/공통화` | UI-도메인 공통화 패턴 조회/적용 |
+### Claude 전역 스킬
+
+| 스킬 | 트리거 | 설명 |
+|------|--------|------|
+| `skills/dev-mode/SKILL.md` | `개발` | 최소 변경 + 자기 검수 기반 개발 모드 |
+| `skills/plan-mode/SKILL.md` | `계획` | 구현 전 설계/합의 강제 모드 |
+| `skills/review-mode/SKILL.md` | `리뷰` | 변경 코드 시니어 관점 검수 |
+| `skills/safe-commit/SKILL.md` | `커밋`, `푸시` | 브랜치/변경 범위 확인 후 안전 커밋 |
+| `skills/docs-sync/SKILL.md` | `문서` | 작업 전후 문서 맥락 동기화 |
+| `skills/session-reset/SKILL.md` | `정리` | 긴 대화 맥락 정리 |
+| `skills/recursive-review/SKILL.md` | `재귀` | 3라운드 실행/검증/수정 사이클 |
+| `skills/ui-commonization/SKILL.md` | `공통화` | UI-도메인 공통화 패턴 조회/적용 |
+| `skills/bi-writing/SKILL.md` | `BI`, `기술 공유 문서` | BI-Weekly 기술 공유 문서 작성 |
+
+### Codex 스킬 스냅샷
+
+| 경로 | 용도 |
+|------|------|
+| `codex-skills/local/` | 로컬 `~/.codex/skills` 스킬. `setup.sh` 실행 시 `~/.codex/skills/`로 배포 |
+| `codex-skills/system/` | Codex 기본 시스템 스킬 참고용 백업. 기본 배포 대상 아님 |
+| `codex-plugin-skills/` | Codex plugin cache 스킬 참고용 백업. plugin 설치로 관리되는 영역이므로 기본 배포 대상 아님 |
 
 ## 워크플로우
 
@@ -67,6 +90,18 @@ cd ~/Documents/Android/ClaudeGuide && git pull
     ↓
 심볼릭 링크로 자동 반영
 ```
+
+## 다른 컴퓨터 적용 범위
+
+`./setup.sh`는 아래를 설정한다.
+
+- `guides/*.md` → `~/.claude/guides/`
+- `claude-md/gmarket-global-CLAUDE.md` → `~/.claude/CLAUDE.md`
+- `skills/*` 전체 파일 → `~/.claude/skills/`
+- `codex-skills/local/*` 전체 파일 → `~/.codex/skills/`
+- `projects.conf`에 등록된 프로젝트 → `{project}/.claude/skills/`
+
+스킬 디렉터리 내부의 `references/`, `scripts/`, `assets/`도 함께 배포된다.
 
 ## 심볼릭 링크 제거
 

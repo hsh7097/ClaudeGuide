@@ -17,6 +17,7 @@ set -e
 # ─── 경로 설정 ───
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_HOME="$HOME/.claude"
+CODEX_HOME="$HOME/.codex"
 GUIDES_DIR="$CLAUDE_HOME/guides"
 
 # ─── OS 감지 ───
@@ -75,6 +76,25 @@ install_file() {
     fi
 }
 
+# 디렉토리 내부 파일 전체 설치 (references/scripts/assets 포함)
+install_tree() {
+    local source_dir="$1"
+    local target_dir="$2"
+
+    mkdir -p "$target_dir"
+
+    while IFS= read -r -d '' source_file; do
+        local relative_path
+        relative_path="${source_file#$source_dir/}"
+
+        local target_file
+        target_file="$target_dir/$relative_path"
+
+        mkdir -p "$(dirname "$target_file")"
+        install_file "$source_file" "$target_file"
+    done < <(find "$source_dir" -type f ! -name ".DS_Store" -print0)
+}
+
 # 파일 제거
 remove_file() {
     local target="$1"
@@ -98,6 +118,14 @@ if [ "$1" = "--unlink" ]; then
 
     # 글로벌 CLAUDE.md 제거
     remove_file "$CLAUDE_HOME/CLAUDE.md"
+
+    # Codex 로컬 스킬 제거
+    if [ -d "$SCRIPT_DIR/codex-skills/local" ]; then
+        for skill_dir in "$SCRIPT_DIR"/codex-skills/local/*/; do
+            [ -d "$skill_dir" ] || continue
+            remove_file "$CODEX_HOME/skills/$(basename "$skill_dir")/SKILL.md"
+        done
+    fi
 
     echo ""
     log_info "설정 제거 완료"
@@ -162,14 +190,25 @@ for skill_dir in "$SCRIPT_DIR"/skills/*/; do
     skill_name=$(basename "$skill_dir")
     target_dir="$GLOBAL_SKILLS_DIR/$skill_name"
 
-    mkdir -p "$target_dir"
-
-    for skill_file in "$skill_dir"*.md; do
-        [ -f "$skill_file" ] || continue
-        filename=$(basename "$skill_file")
-        install_file "$skill_file" "$target_dir/$filename"
-    done
+    install_tree "$skill_dir" "$target_dir"
 done
+
+# 3.7. Codex 로컬 스킬 배포 (~/.codex/skills/)
+CODEX_SKILLS_DIR="$CODEX_HOME/skills"
+echo ""
+echo "--- Codex 로컬 스킬 배포 ---"
+if [ -d "$SCRIPT_DIR/codex-skills/local" ]; then
+    mkdir -p "$CODEX_SKILLS_DIR"
+    for skill_dir in "$SCRIPT_DIR"/codex-skills/local/*/; do
+        [ -d "$skill_dir" ] || continue
+        skill_name=$(basename "$skill_dir")
+        target_dir="$CODEX_SKILLS_DIR/$skill_name"
+
+        install_tree "$skill_dir" "$target_dir"
+    done
+else
+    log_info "codex-skills/local 디렉토리 없음. Codex 스킬 배포 건너뜀."
+fi
 
 # 4. 프로젝트별 스킬 자동 배포 (추가 프로젝트용, 전역과 별도)
 echo ""
@@ -214,13 +253,7 @@ for project in "${PROJECTS[@]}"; do
         skill_name=$(basename "$skill_dir")
         target_dir="$project/.claude/skills/$skill_name"
 
-        mkdir -p "$target_dir"
-
-        for skill_file in "$skill_dir"*.md; do
-            [ -f "$skill_file" ] || continue
-            filename=$(basename "$skill_file")
-            install_file "$skill_file" "$target_dir/$filename"
-        done
+        install_tree "$skill_dir" "$target_dir"
     done
 done
 echo ""
@@ -242,4 +275,6 @@ echo ""
 echo "검증:"
 echo "  ls -la $GUIDES_DIR/"
 echo "  ls -la $CLAUDE_HOME/CLAUDE.md"
+echo "  ls -la $CLAUDE_HOME/skills/"
+echo "  ls -la $CODEX_HOME/skills/"
 echo ""
