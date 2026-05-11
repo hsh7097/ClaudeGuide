@@ -170,24 +170,7 @@ echo ""
 echo "--- 글로벌 CLAUDE.md ---"
 install_file "$SCRIPT_DIR/claude-md/gmarket-global-CLAUDE.md" "$CLAUDE_HOME/CLAUDE.md"
 
-# 3.5. Hook 스크립트 배포
-HOOKS_DIR="$CLAUDE_HOME/hooks"
-echo ""
-echo "--- Hook 스크립트 배포 ---"
-if [ -d "$SCRIPT_DIR/hooks" ] && ls "$SCRIPT_DIR"/hooks/*.sh >/dev/null 2>&1; then
-    mkdir -p "$HOOKS_DIR"
-    for hook in "$SCRIPT_DIR"/hooks/*.sh; do
-        [ -f "$hook" ] || continue
-        filename=$(basename "$hook")
-        install_file "$hook" "$HOOKS_DIR/$filename"
-        # 실행 권한 부여 (복사 모드에서도)
-        chmod +x "$HOOKS_DIR/$filename" 2>/dev/null
-    done
-else
-    log_info "hooks/ 디렉토리 없음. Hook 배포 건너뜀."
-fi
-
-# 3.6. 전역 스킬 배포 (~/.claude/skills/)
+# 3.5. 전역 스킬 배포 (~/.claude/skills/)
 GLOBAL_SKILLS_DIR="$CLAUDE_HOME/skills"
 echo ""
 echo "--- 전역 스킬 배포 ---"
@@ -199,7 +182,7 @@ for skill_dir in "$SCRIPT_DIR"/skills/*/; do
     install_tree "$skill_dir" "$target_dir"
 done
 
-# 3.7. Codex 로컬 스킬 배포 (~/.codex/skills/)
+# 3.6. Codex 로컬 스킬 배포 (~/.codex/skills/)
 CODEX_SKILLS_DIR="$CODEX_HOME/skills"
 echo ""
 echo "--- Codex 로컬 스킬 배포 ---"
@@ -216,7 +199,7 @@ else
     log_info "codex-skills/local 디렉토리 없음. Codex 스킬 배포 건너뜀."
 fi
 
-# 3.8. Codex 전역 md 배포 (~/.codex/CODEX.md, ~/.codex/AGENTS.md)
+# 3.7. Codex 전역 md 배포 (~/.codex/CODEX.md, ~/.codex/AGENTS.md)
 echo ""
 echo "--- Codex 전역 md 배포 ---"
 mkdir -p "$CODEX_HOME"
