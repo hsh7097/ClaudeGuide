@@ -22,7 +22,7 @@ python scripts/merge_docx_append.py base.docx append.docx --out merged.docx --al
 ## Verify
 Always render and inspect:
 ```bash
-python render_docx.py merged.docx --output_dir out_merged --renderer artifact-tool
+python render_docx.py merged.docx --output_dir out_merged
 ```
 
 ## Pitfalls

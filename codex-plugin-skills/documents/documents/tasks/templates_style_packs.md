@@ -19,7 +19,7 @@ Direct formatting (manual bold/size/etc. on runs) can override style packs and c
 
 2. Render and review:
    ```bash
-   python render_docx.py report_styled.docx --output_dir out_styled --renderer artifact-tool
+   python render_docx.py report_styled.docx --output_dir out_styled
    ```
 
 ## Render → PNG review checklist

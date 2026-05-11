@@ -27,7 +27,7 @@ python scripts/make_fixtures.py --outdir fixtures --only watermark
 ```bash
 python scripts/accept_tracked_changes.py fixtures/tracked_changes_fixture.docx --mode report
 python scripts/accept_tracked_changes.py fixtures/tracked_changes_fixture.docx --mode accept --out accepted.docx
-python render_docx.py accepted.docx --output_dir out_accepted --renderer artifact-tool
+python render_docx.py accepted.docx --output_dir out_accepted
 ```
 
 ### Watermarks

@@ -1,13 +1,13 @@
 ---
 name: browser
-description: "Use the Codex in-app browser to inspect, navigate, test, or automate local targets such as localhost, 127.0.0.1, ::1, file://, or the current in-app browser tab."
+description: "Browser automation for the Codex in-app browser. Use for developer browser tasks on local targets such as localhost, 127.0.0.1, file:// and viewing websites side by side inside Codex."
 ---
 
 # Browser
 
-Use this skill when the user wants browser automation through the Browser `browser-client` runtime in the Codex in-app browser. Initialize Browser with the `iab` backend.
+Use this skill for browser automation tasks such as inspecting pages, navigating, testing local apps, clicking, typing, taking screenshots, and reading visible page state. Initialize Browser with the `iab` backend.
 
-If the Browser plugin is listed as available in the session, treat that as mandatory reading before browser work. Open and follow this skill before saying that Browser is unavailable and before falling back to Playwright or Computer Use.
+If this plugin is listed as available in the session, treat that as mandatory reading before browser work. Open and follow this skill before saying that Browser is unavailable and before falling back to Playwright or Computer Use.
 
 Do not skip this skill just because Computer Use MCP tool calls are directly visible or appear easier to invoke. The presence of Computer Use tools is not evidence that Computer Use is the preferred browser surface.
 
@@ -15,8 +15,8 @@ Before the first browser action or API call in a turn, you MUST read this entire
 
 ## Bootstrap
 
-The `browser-client` module is the core entry point for browser use, and is available in the plugin root directory under `scripts/browser-client.mjs`. ALWAYS import it using an absolute path.
-IMPORTANT: If this path cannot be found, stop and report that the plugin build is missing `scripts/browser-client.mjs`. NEVER use the built in `browser-client` library.
+The `browser-client` module is the core entry point for browser use, and is available under `scripts/browser-client.mjs` in this plugin's root directory. ALWAYS import it using an absolute path.
+IMPORTANT: If this path cannot be found, stop and report that this plugin is missing `scripts/browser-client.mjs`. NEVER use the built in `browser-client` library.
 
 Run browser setup code through the Node REPL `js` tool. In this environment the callable tool id typically appears as `mcp__node_repl__js`; `js_reset` only clears state and is not the execution tool. Run this once per fresh `node_repl` session:
 
@@ -190,6 +190,7 @@ Only the Node REPL `js` tool (`mcp__node_repl__js`) can be used to control the i
 * Prefer Playwright where possible, but if it is not clear how to best use it, prefer vision.
 * Always make sure you understand what is on the screen before proceeding to your next action. After clicking, scrolling, typing, or other interactions, collect the cheapest state check that answers the next question. Prefer a fresh DOM snapshot when you need locator ground truth, prefer a screenshot when visual confirmation matters, and avoid requesting both by default.
 * Screenshots return an `Image` type that can ONLY be put into context by using the top-level `display` function (e.g. `await display(screenshot);`).
+* If you take a screenshot that the user should see, include the image inline in your Markdown response.
 * Remember that variables are persistent across calls to the REPL. By default, define `tab` once and keep using it. Only re-query a tab when you are intentionally switching to a different tab, after a kernel reset, or after a failed cell that never created the binding.
 
 ### General guidance
@@ -356,16 +357,18 @@ interface Agent {
 
 interface Browser {
   tabs: Tabs; // API for interacting with browser tabs.
-  user: BrowserUser; // Readonly context about tabs and history in the user's browser windows.
+  user: BrowserUser; // Readonly context about tabs in the user's browser windows.
   nameSession(name: string): Promise<void>; // Name the current browser automation session.
 }
 
 interface BrowserUser {
 
+
   openTabs(): Promise<Array<BrowserUserTabInfo>>; // List open top-level tabs across the user's browser windows ordered by `lastOpened` descending.
 }
 
 interface Tabs {
+
   get(id: string): Promise<Tab>; // Get a tab by id.
   list(): Promise<Array<TabInfo>>; // List open tabs in the browser.
   new(): Promise<Tab>; // Create and return a new tab in the browser.
@@ -377,7 +380,7 @@ interface Tab {
 
   cua: CUAAPI; // API for interacting with the tab via the cua api
   dev: TabDevAPI; // API for developer-oriented tab inspection.
-
+  dom_cua: DomCUAAPI; // API for interacting with the tab via the dom based cua api
   id: string; // A tab's unique identifier
   playwright: PlaywrightAPI; // API for interacting with the tab via the playwright api
   back(): Promise<void>; // Navigate this tab back in history.
@@ -403,7 +406,15 @@ interface CUAAPI {
   type(options: TypeOptions): Promise<void>; // Type text at the current focus.
 }
 
+interface DomCUAAPI {
+  click(options: DomClickOptions): Promise<void>; // Click a DOM node by its id from the visible DOM snapshot.
+  double_click(options: DomClickOptions): Promise<void>; // Double-click a DOM node by its id.
 
+  get_visible_dom(): Promise<unknown>; // Return a filtered DOM with node ids for interactable elements.
+  keypress(options: DomKeypressOptions): Promise<void>; // Press control characters at the currently focused element (focus it first via click/dblclick).
+  scroll(options: DomScrollOptions): Promise<void>; // Scroll either the page or a specific node (if node_id provided) by deltas.
+  type(options: DomTypeOptions): Promise<void>; // Type text into the currently focused element (focus via click first).
+}
 
 interface PlaywrightAPI {
   domSnapshot(): Promise<string>; // Return a snapshot of the current DOM as a string.
@@ -494,19 +505,6 @@ interface BrowserUserTabInfo {
   url?: string; // Current tab URL.
 }
 
-interface BrowserHistoryOptions {
-  from?: string | Date; // Lower bound for visit timestamps.
-  limit?: number; // Maximum number of history entries to return.
-  query?: string; // Optional term to filter browser history with.
-  to?: string | Date; // Upper bound for visit timestamps.
-}
-
-interface BrowserHistoryEntry {
-  dateVisited: string; // ISO 8601 timestamp for the visit.
-  title?: string; // Page title captured for the visit.
-  url: string; // Visited URL.
-}
-
 interface TabsContentOptions {
 
   timeoutMs?: number; // Maximum time to wait for each page load, in milliseconds.
@@ -542,12 +540,6 @@ type DoubleClickOptions = {
   y: number;
 };
 
-type CuaDownloadMediaOptions = {
-  timeoutMs?: number;
-  x: number;
-  y: number;
-};
-
 type DragOptions = {
   keys?: Array<string>; // Optional modifier keys held during the drag.
   path: Array<{ x: number; y: number }>; // Drag path as a list of points.
@@ -573,6 +565,24 @@ type ScrollOptions = {
 
 type TypeOptions = {
   text: string;
+};
+
+type DomClickOptions = {
+  node_id: string; // Node id from `get_visible_dom()`.
+};
+
+type DomKeypressOptions = {
+  keys: Array<string>; // Key combination to press.
+};
+
+type DomScrollOptions = {
+  node_id?: string; // Optional node id to scroll within.
+  x: number; // Horizontal scroll delta.
+  y: number; // Vertical scroll delta.
+};
+
+type DomTypeOptions = {
+  text: string; // Text to type into the currently focused element.
 };
 
 type ElementInfoOptions = {

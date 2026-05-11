@@ -43,7 +43,7 @@ Defaults: include Heading 1–3.
 4) Render and visually verify:
 
 ```bash
-python render_docx.py /mnt/data/with_toc.docx --output_dir /mnt/data/out --renderer artifact-tool
+python render_docx.py /mnt/data/with_toc.docx --output_dir /mnt/data/out
 ```
 
 ## Render → PNG review checklist (TOC)

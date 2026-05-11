@@ -44,7 +44,7 @@ python scripts/internal_nav.py /mnt/data/with_caps.docx --out /mnt/data/with_nav
 4) Render and verify
 
 ```bash
-python render_docx.py /mnt/data/with_nav.docx --output_dir /mnt/data/out_nav --renderer artifact-tool
+python render_docx.py /mnt/data/with_nav.docx --output_dir /mnt/data/out_nav
 ```
 
 Verify:

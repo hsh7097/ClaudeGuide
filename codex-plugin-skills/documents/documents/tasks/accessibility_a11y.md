@@ -46,7 +46,7 @@ python scripts/a11y_audit.py input.docx \
 1) Apply fixes (if any)
 2) **Render → inspect PNGs** to confirm nothing drifted visually:
 ```bash
-python render_docx.py a11y_fixed.docx --output_dir out_a11y --renderer artifact-tool
+python render_docx.py a11y_fixed.docx --output_dir out_a11y
 ```
 
 ## Pitfalls

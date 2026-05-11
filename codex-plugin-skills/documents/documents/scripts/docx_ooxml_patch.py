@@ -57,7 +57,7 @@ def _qn(prefix: str, local: str) -> str:
 
 def iso_now() -> str:
     # Word likes a Z suffix.
-    return _dt.datetime.now(_dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
 
 def unzip_docx(docx_path: Path, out_dir: Path) -> None:
@@ -646,4 +646,4 @@ if __name__ == "__main__":
         if os.environ.get("DOCS_DEBUG") == "1":
             raise
         print(f"[ERROR] {e}", file=sys.stderr)
-        raise SystemExit(2) from None
+        raise SystemExit(2)

@@ -34,6 +34,7 @@ ClaudeGuide/
 │   ├── local/             # setup.sh가 ~/.codex/skills/ 로 배포
 │   └── system/            # Codex 기본 시스템 스킬 참고용 스냅샷
 ├── codex-plugin-skills/   # Codex plugin cache 스킬 참고용 스냅샷
+├── codex-md/              # ~/.codex/CODEX.md, ~/.codex/AGENTS.md 백업/배포
 ├── claude-md/             # CLAUDE.md 백업/참조
 │   ├── gmarket-global-CLAUDE.md
 │   └── gmarket-project-CLAUDE.md
@@ -75,6 +76,7 @@ ClaudeGuide/
 | `codex-skills/local/` | 로컬 `~/.codex/skills` 스킬. `setup.sh` 실행 시 `~/.codex/skills/`로 배포 |
 | `codex-skills/system/` | Codex 기본 시스템 스킬 참고용 백업. 기본 배포 대상 아님 |
 | `codex-plugin-skills/` | Codex plugin cache 스킬 참고용 백업. plugin 설치로 관리되는 영역이므로 기본 배포 대상 아님 |
+| `codex-md/` | Codex 전역 `CODEX.md`, `AGENTS.md` 백업. `setup.sh` 실행 시 `~/.codex/`로 배포 |
 
 ## 워크플로우
 
@@ -99,6 +101,7 @@ cd ~/Documents/Android/ClaudeGuide && git pull
 - `claude-md/gmarket-global-CLAUDE.md` → `~/.claude/CLAUDE.md`
 - `skills/*` 전체 파일 → `~/.claude/skills/`
 - `codex-skills/local/*` 전체 파일 → `~/.codex/skills/`
+- `codex-md/CODEX.md`, `codex-md/AGENTS.md` → `~/.codex/`
 - `projects.conf`에 등록된 프로젝트 → `{project}/.claude/skills/`
 
 스킬 디렉터리 내부의 `references/`, `scripts/`, `assets/`도 함께 배포된다.

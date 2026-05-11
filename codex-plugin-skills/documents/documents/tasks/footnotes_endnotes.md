@@ -35,7 +35,7 @@ python scripts/insert_note.py input.docx --kind endnote  --marker "[[EN]]" --tex
 
 3. Render → PNG review:
 ```bash
-python render_docx.py with_fn.docx --output_dir out_fn --renderer artifact-tool
+python render_docx.py with_fn.docx --output_dir out_fn
 ```
 
 ## Render → PNG review checklist

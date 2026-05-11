@@ -81,7 +81,7 @@ python scripts/fields_materialize.py /mnt/data/with_refs.docx --out /mnt/data/ou
 
 ### 4) Render and visually QA
 ```bash
-python render_docx.py /mnt/data/with_refs_materialized.docx --output_dir /mnt/data/out_caps --renderer artifact-tool
+python render_docx.py /mnt/data/with_refs_materialized.docx --output_dir /mnt/data/out_caps
 ```
 Inspect the PNGs.
 

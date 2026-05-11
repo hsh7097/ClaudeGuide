@@ -54,7 +54,7 @@ python scripts/style_normalize.py input.docx out_normalized.docx --enforce_headi
 
 ## Visual QA gate
 ```bash
-python render_docx.py out_normalized.docx --output_dir /mnt/data/out_norm --renderer artifact-tool
+python render_docx.py out_normalized.docx --output_dir /mnt/data/out_norm
 ```
 Success criteria:
 - No clipped/overlapping text

@@ -16,7 +16,7 @@ python scripts/privacy_scrub.py input.docx --out scrubbed.docx
 
 ## Verify
 ```bash
-python render_docx.py scrubbed.docx --output_dir out_scrubbed --renderer artifact-tool
+python render_docx.py scrubbed.docx --output_dir out_scrubbed
 ```
 
 ## Pitfalls

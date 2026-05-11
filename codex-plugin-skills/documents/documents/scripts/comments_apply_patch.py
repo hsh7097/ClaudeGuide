@@ -114,10 +114,7 @@ def apply_patch(in_docx: str, patch_path: str, out_docx: str) -> None:
                 # Touch date to make the change visible.
                 comment.set(
                     w("date"),
-                    _dt.datetime.now(_dt.UTC)
-                    .replace(microsecond=0)
-                    .isoformat()
-                    .replace("+00:00", "Z"),
+                    _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
                 )
                 did_any = True
             elif op.get("resolved") is False:
@@ -126,10 +123,7 @@ def apply_patch(in_docx: str, patch_path: str, out_docx: str) -> None:
                     comment.attrib.pop(w("done"), None)
                     comment.set(
                         w("date"),
-                        _dt.datetime.now(_dt.UTC)
-                        .replace(microsecond=0)
-                        .isoformat()
-                        .replace("+00:00", "Z"),
+                        _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
                     )
                     did_any = True
 

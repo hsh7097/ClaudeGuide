@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import argparse
 import glob
 import os
@@ -10,151 +8,33 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from os import makedirs, replace
-from os.path import abspath, basename, dirname, exists, expanduser, join, splitext
+from os.path import abspath, basename, exists, expanduser, join, splitext
 from typing import Sequence, cast
 from zipfile import ZipFile
 
+from pdf2image import convert_from_path, pdfinfo_from_path
+
 TWIPS_PER_INCH: int = 1440
-BASE_RENDER_DPI = 96
-DEFAULT_RUNTIME_PACKAGE_GLOBS = [
-    "~/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/@oai/artifact-tool",
-    "~/.cache/codex-runtimes/codex-primary-runtime-*/dependencies/node/node_modules/@oai/artifact-tool",
-    "~/.codex/environments/*/codex-primary-runtime/dependencies/node/node_modules/@oai/artifact-tool",
-]
 
 
-def find_soffice() -> str | None:
-    """Return a LibreOffice binary path if one is already available."""
+def _guard_macos_tmpdir_for_soffice() -> None:
+    """Avoid launching LibreOffice from the known-crashing macOS temp state."""
 
-    env_bin = os.environ.get("LIBREOFFICE_BIN")
-    if env_bin and exists(expanduser(env_bin)):
-        return abspath(expanduser(env_bin))
+    if sys.platform != "darwin":
+        return
+    if not os.path.isdir("/private/tmp"):
+        return
 
-    for name in ("soffice", "libreoffice"):
-        resolved = shutil.which(name)
-        if resolved:
-            return resolved
-
-    mac_candidates = [
-        "/Applications/LibreOffice.app/Contents/MacOS/soffice",
-        "/Applications/LibreOffice.app/Contents/MacOS/libreoffice",
-    ]
-    for candidate in mac_candidates:
-        if exists(candidate):
-            return candidate
-
-    return None
-
-
-def _node_executable_name() -> str:
-    return "node.exe" if os.name == "nt" else "node"
-
-
-def _is_artifact_tool_package_dir(path: str) -> bool:
-    return exists(join(path, "package.json")) and exists(join(path, "dist", "artifact_tool.mjs"))
-
-
-def _candidate_artifact_tool_dirs(start_dir: str) -> list[str]:
-    current = abspath(start_dir)
-    candidates: list[str] = []
-    while True:
-        candidates.append(join(current, "node_modules", "@oai", "artifact-tool"))
-        parent = dirname(current)
-        if parent == current:
-            break
-        current = parent
-    return candidates
-
-
-def find_artifact_tool_package_dir(input_path: str) -> str:
-    candidates: list[str] = []
-
-    env_package_dir = os.environ.get("ARTIFACT_TOOL_PACKAGE_DIR")
-    if env_package_dir:
-        candidates.append(env_package_dir)
-
-    env_node_modules = os.environ.get("CODEX_NODE_MODULES") or os.environ.get("NODE_MODULES_PATH")
-    if env_node_modules:
-        candidates.append(join(env_node_modules, "@oai", "artifact-tool"))
-
-    for pattern in DEFAULT_RUNTIME_PACKAGE_GLOBS:
-        candidates.extend(glob.glob(expanduser(pattern)))
-
-    candidates.extend(_candidate_artifact_tool_dirs(os.getcwd()))
-    candidates.extend(_candidate_artifact_tool_dirs(dirname(input_path)))
-    candidates.extend(_candidate_artifact_tool_dirs(dirname(abspath(__file__))))
-
-    seen: set[str] = set()
-    for candidate in candidates:
-        resolved = abspath(expanduser(candidate))
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        if _is_artifact_tool_package_dir(resolved):
-            return resolved
+    tmpdir = os.environ.get("TMPDIR", "")
+    tmpdir_norm = os.path.realpath(tmpdir.rstrip(os.sep) or tmpdir)
+    if tmpdir_norm == "/private/tmp":
+        return
 
     raise RuntimeError(
-        "Could not find the bundled @oai/artifact-tool package. "
-        "Install or refresh the Codex primary runtime bundle, or set "
-        "ARTIFACT_TOOL_PACKAGE_DIR to the package directory."
-    )
-
-
-def find_node_executable(artifact_tool_package_dir: str) -> str:
-    env_node = os.environ.get("CODEX_NODE_PATH") or os.environ.get("NODE_BIN")
-    if env_node and exists(expanduser(env_node)):
-        return abspath(expanduser(env_node))
-
-    package_scope_dir = dirname(artifact_tool_package_dir)
-    node_modules_dir = dirname(package_scope_dir)
-    runtime_node_root = dirname(node_modules_dir)
-    derived_node = join(runtime_node_root, "bin", _node_executable_name())
-    if exists(derived_node):
-        return derived_node
-
-    default_runtime_nodes = [
-        join(
-            expanduser("~"),
-            ".cache",
-            "codex-runtimes",
-            "codex-primary-runtime",
-            "dependencies",
-            "node",
-            "bin",
-            _node_executable_name(),
-        )
-    ]
-    default_runtime_nodes.extend(
-        glob.glob(
-            expanduser(
-                join(
-                    "~",
-                    ".codex",
-                    "environments",
-                    "*",
-                    "codex-primary-runtime",
-                    "dependencies",
-                    "node",
-                    "bin",
-                    _node_executable_name(),
-                )
-            )
-        )
-    )
-
-    for candidate in default_runtime_nodes:
-        resolved = abspath(expanduser(candidate))
-        if exists(resolved):
-            return resolved
-
-    resolved = shutil.which("node")
-    if resolved:
-        return resolved
-
-    raise RuntimeError(
-        "Could not find a Node.js executable for the bundled @oai/artifact-tool "
-        "package. Install or refresh the Codex primary runtime bundle, or set "
-        "CODEX_NODE_PATH."
+        "LibreOffice can abort in this macOS sandbox when Python starts with "
+        f"TMPDIR={tmpdir!r}. Re-run the renderer with TMPDIR set before Python "
+        "starts, for example: env TMPDIR=/private/tmp python render_docx.py "
+        "<input.docx> --output_dir <out>"
     )
 
 
@@ -261,7 +141,6 @@ def convert_to_pdf(
     convert_tmp_dir: str,
     stem: str,
     verbose: bool,
-    soffice_bin: str,
 ) -> tuple[str, str]:
     """Convert input into a PDF.
 
@@ -269,6 +148,7 @@ def convert_to_pdf(
     debug_log contains captured stdout/stderr for diagnosis.
     """
 
+    _guard_macos_tmpdir_for_soffice()
     env = _build_lo_env(user_profile)
     logs: list[str] = []
 
@@ -291,7 +171,7 @@ def convert_to_pdf(
 
     # Try direct DOC(X) -> PDF
     cmd_pdf = [
-        soffice_bin,
+        "soffice",
         "-env:UserInstallation=file://" + user_profile,
         "--invisible",
         "--headless",
@@ -319,7 +199,7 @@ def convert_to_pdf(
 
     # Fallback: DOCX -> ODT, then ODT -> PDF
     cmd_odt = [
-        soffice_bin,
+        "soffice",
         "-env:UserInstallation=file://" + user_profile,
         "--invisible",
         "--headless",
@@ -337,7 +217,7 @@ def convert_to_pdf(
 
     if exists(odt_path):
         cmd_odt_pdf = [
-            soffice_bin,
+            "soffice",
             "-env:UserInstallation=file://" + user_profile,
             "--invisible",
             "--headless",
@@ -361,27 +241,14 @@ def convert_to_pdf(
     return "", "\n".join(logs)
 
 
-def calc_dpi_via_pdf(
-    input_path: str,
-    max_w_px: int,
-    max_h_px: int,
-    verbose: bool,
-    soffice_bin: str,
-) -> int:
+def calc_dpi_via_pdf(input_path: str, max_w_px: int, max_h_px: int, verbose: bool) -> int:
     """Convert input to PDF and compute DPI from its page size."""
-
-    from pdf2image import pdfinfo_from_path
 
     with tempfile.TemporaryDirectory(prefix="soffice_profile_") as user_profile:
         with tempfile.TemporaryDirectory(prefix="soffice_convert_") as convert_tmp_dir:
             stem = splitext(basename(input_path))[0]
             pdf_path, debug = convert_to_pdf(
-                input_path,
-                user_profile,
-                convert_tmp_dir,
-                stem,
-                verbose=verbose,
-                soffice_bin=soffice_bin,
+                input_path, user_profile, convert_tmp_dir, stem, verbose=verbose
             )
             if not (pdf_path and exists(pdf_path)):
                 raise RuntimeError("Failed to convert input to PDF for DPI computation.\n" + debug)
@@ -412,19 +279,12 @@ def calc_dpi_via_pdf(
 
 
 def rasterize(
-    doc_path: str,
-    out_dir: str,
-    dpi: int,
-    verbose: bool,
-    emit_pdf: bool,
-    soffice_bin: str,
+    doc_path: str, out_dir: str, dpi: int, verbose: bool, emit_pdf: bool
 ) -> Sequence[str]:
     """Rasterize DOCX-like input to images placed in out_dir and return their paths.
 
     Images are named as page-<N>.png with pages starting at 1.
     """
-
-    from pdf2image import convert_from_path
 
     makedirs(out_dir, exist_ok=True)
     doc_path = abspath(doc_path)
@@ -433,12 +293,7 @@ def rasterize(
     with tempfile.TemporaryDirectory(prefix="soffice_profile_") as user_profile:
         with tempfile.TemporaryDirectory(prefix="soffice_convert_") as convert_tmp_dir:
             pdf_path, debug = convert_to_pdf(
-                doc_path,
-                user_profile,
-                convert_tmp_dir,
-                stem,
-                verbose=verbose,
-                soffice_bin=soffice_bin,
+                doc_path, user_profile, convert_tmp_dir, stem, verbose=verbose
             )
 
             if not pdf_path or not exists(pdf_path):
@@ -480,93 +335,10 @@ def rasterize(
     return [path for _, path in pages]
 
 
-def calc_artifact_tool_scale(
-    input_path: str, max_w_px: int, max_h_px: int, dpi: int | None
-) -> float:
-    """Calculate an artifact-tool raster scale from the requested max image size."""
-
-    if dpi is not None:
-        return max(dpi / BASE_RENDER_DPI, 0.1)
-
-    try:
-        resolved_dpi = calc_dpi_via_ooxml_docx(input_path, max_w_px, max_h_px)
-        return max(resolved_dpi / BASE_RENDER_DPI, 0.1)
-    except Exception:
-        return 2.0
-
-
-def run_artifact_tool_renderer(
-    input_path: str,
-    out_dir: str,
-    scale: float,
-    verbose: bool,
-) -> Sequence[str]:
-    """Render a DOCX to page PNGs with the bundled @oai/artifact-tool package."""
-
-    if verbose:
-        print(f"[render_docx] using artifact-tool renderer at scale {scale:.3f}")
-
-    script_path = join(dirname(abspath(__file__)), "scripts", "render_docx_artifact_tool.mjs")
-    if not exists(script_path):
-        raise RuntimeError(f"artifact-tool renderer script not found: {script_path}")
-
-    artifact_tool_package_dir = find_artifact_tool_package_dir(input_path)
-    node_bin = find_node_executable(artifact_tool_package_dir)
-
-    cmd = [
-        node_bin,
-        script_path,
-        input_path,
-        "--output_dir",
-        out_dir,
-        "--scale",
-        f"{scale:.6f}",
-        "--artifact_tool_package",
-        artifact_tool_package_dir,
-    ]
-    if verbose:
-        cmd.append("--verbose")
-        print("[render_docx] $ " + " ".join(cmd))
-
-    proc = subprocess.run(
-        cmd,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        env=os.environ.copy(),
-    )
-
-    if verbose:
-        if proc.stdout:
-            print(proc.stdout)
-        if proc.stderr:
-            print(proc.stderr, file=sys.stderr)
-
-    if proc.returncode != 0:
-        raise RuntimeError(
-            "artifact-tool render failed.\n"
-            + "STDOUT:\n"
-            + (proc.stdout or "").strip()
-            + "\nSTDERR:\n"
-            + (proc.stderr or "").strip()
-        )
-
-    rendered = sorted(
-        glob.glob(join(out_dir, "page-*.png")),
-        key=lambda path: (
-            int(re.search(r"page-(\d+)\.png$", basename(path)).group(1))
-            if re.search(r"page-(\d+)\.png$", basename(path))
-            else 0
-        ),
-    )
-    if not rendered:
-        raise RuntimeError(f"artifact-tool render did not produce page PNGs in {out_dir}")
-    return rendered
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Render DOCX-like file to PNG page images.")
+    parser = argparse.ArgumentParser(
+        description="Render DOCX-like file to PNG images (internal DOCX -> PDF -> PNG)."
+    )
     parser.add_argument(
         "input_path",
         type=str,
@@ -609,53 +381,20 @@ def main() -> None:
         "--emit_pdf",
         action="store_true",
         help=(
-            "LibreOffice renderer only: also write an intermediate PDF to --output_dir as <input_stem>.pdf. "
+            "Also write an intermediate PDF to --output_dir as <input_stem>.pdf. "
             "Default is PNG-only to avoid confusing intermediates with deliverables."
-        ),
-    )
-    parser.add_argument(
-        "--renderer",
-        choices=("artifact-tool", "granola", "libreoffice", "auto"),
-        default="artifact-tool",
-        help=(
-            "Renderer backend. documents defaults to artifact-tool. "
-            "`granola` is kept as a deprecated alias for backward compatibility. "
-            "Use libreoffice only for an explicit LibreOffice cross-check."
         ),
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Print renderer commands and captured stdout/stderr (useful for debugging).",
+        help="Print LibreOffice commands and captured stdout/stderr (useful for debugging).",
     )
 
     args = parser.parse_args()
 
     input_path = abspath(expanduser(args.input_path))
     out_dir = abspath(expanduser(args.output_dir)) if args.output_dir else splitext(input_path)[0]
-    renderer = args.renderer
-    soffice_bin = find_soffice()
-    if renderer == "auto":
-        renderer = "libreoffice" if soffice_bin else "artifact-tool"
-    elif renderer == "granola":
-        renderer = "artifact-tool"
-
-    if renderer == "artifact-tool":
-        if args.emit_pdf:
-            raise RuntimeError(
-                "--emit_pdf is only supported with --renderer libreoffice; "
-                "artifact-tool emits PNG page images only."
-            )
-        scale = calc_artifact_tool_scale(input_path, args.width, args.height, args.dpi)
-        run_artifact_tool_renderer(input_path, out_dir, scale=scale, verbose=args.verbose)
-        print("Pages rendered to " + out_dir)
-        return
-
-    if not soffice_bin:
-        raise RuntimeError(
-            "LibreOffice renderer requested but no soffice/libreoffice binary was found. "
-            "Use --renderer artifact-tool or set LIBREOFFICE_BIN."
-        )
 
     if args.dpi is not None:
         dpi = int(args.dpi)
@@ -666,27 +405,11 @@ def main() -> None:
             else:
                 raise RuntimeError("Skip OOXML DPI; not a DOCX container")
         except Exception:
-            dpi = calc_dpi_via_pdf(
-                input_path,
-                args.width,
-                args.height,
-                verbose=args.verbose,
-                soffice_bin=soffice_bin,
-            )
+            dpi = calc_dpi_via_pdf(input_path, args.width, args.height, verbose=args.verbose)
 
-    rasterize(
-        input_path,
-        out_dir,
-        dpi,
-        verbose=args.verbose,
-        emit_pdf=args.emit_pdf,
-        soffice_bin=soffice_bin,
-    )
+    rasterize(input_path, out_dir, dpi, verbose=args.verbose, emit_pdf=args.emit_pdf)
     print("Pages rendered to " + out_dir)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except RuntimeError as exc:
-        raise SystemExit(f"ERROR: {exc}") from None
+    main()

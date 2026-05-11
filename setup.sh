@@ -127,6 +127,12 @@ if [ "$1" = "--unlink" ]; then
         done
     fi
 
+    # Codex 전역 md 제거
+    if [ -d "$SCRIPT_DIR/codex-md" ]; then
+        remove_file "$CODEX_HOME/CODEX.md"
+        remove_file "$CODEX_HOME/AGENTS.md"
+    fi
+
     echo ""
     log_info "설정 제거 완료"
     exit 0
@@ -210,6 +216,17 @@ else
     log_info "codex-skills/local 디렉토리 없음. Codex 스킬 배포 건너뜀."
 fi
 
+# 3.8. Codex 전역 md 배포 (~/.codex/CODEX.md, ~/.codex/AGENTS.md)
+echo ""
+echo "--- Codex 전역 md 배포 ---"
+mkdir -p "$CODEX_HOME"
+if [ -d "$SCRIPT_DIR/codex-md" ]; then
+    [ -f "$SCRIPT_DIR/codex-md/CODEX.md" ] && install_file "$SCRIPT_DIR/codex-md/CODEX.md" "$CODEX_HOME/CODEX.md"
+    [ -f "$SCRIPT_DIR/codex-md/AGENTS.md" ] && install_file "$SCRIPT_DIR/codex-md/AGENTS.md" "$CODEX_HOME/AGENTS.md"
+else
+    log_info "codex-md 디렉토리 없음. Codex 전역 md 배포 건너뜀."
+fi
+
 # 4. 프로젝트별 스킬 자동 배포 (추가 프로젝트용, 전역과 별도)
 echo ""
 echo "--- 프로젝트 스킬 배포 ---"
@@ -277,4 +294,5 @@ echo "  ls -la $GUIDES_DIR/"
 echo "  ls -la $CLAUDE_HOME/CLAUDE.md"
 echo "  ls -la $CLAUDE_HOME/skills/"
 echo "  ls -la $CODEX_HOME/skills/"
+echo "  ls -la $CODEX_HOME/CODEX.md $CODEX_HOME/AGENTS.md"
 echo ""

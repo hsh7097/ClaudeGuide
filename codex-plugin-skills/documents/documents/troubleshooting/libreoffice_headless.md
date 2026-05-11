@@ -1,21 +1,24 @@
-# Troubleshooting: Optional LibreOffice headless rendering
+# Troubleshooting: LibreOffice headless rendering
 
 ## Symptom: `soffice` hangs, times out, or errors in a container
 This is commonly caused by LibreOffice failing to create/lock its user profile, or attempting to write config/cache under a non-writable `HOME`.
 
-## Recommended path: use artifact-tool
-For `documents`, LibreOffice is optional. Use the canonical helper with the artifact-tool renderer:
+## Fix (recommended): use the packaged renderer script
+Use the canonical helper (`render_docx.py`). It:
+- creates a unique per-run LibreOffice profile
+- forces a writable `HOME` / XDG dirs under that profile
+- captures stdout/stderr so failures are diagnosable
 
 ```bash
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --renderer artifact-tool
-# If you're debugging a artifact-tool render failure:
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --verbose --renderer artifact-tool
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out
+# macOS/Codex desktop: set TMPDIR before Python starts
+env TMPDIR=/private/tmp python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out
+# If you're debugging a conversion failure:
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --verbose
 ```
 
-If artifact-tool fails, fix artifact-tool rendering before delivery. Do not ship from structural DOCX inspection alone.
-
-## LibreOffice cross-check: profile + writable HOME
-If you explicitly need a LibreOffice cross-check, use a unique profile:
+## Fix (manual): profile + writable HOME
+If you must run `soffice` directly, do this:
 
 ```bash
 OUTDIR=/mnt/data/out
@@ -26,12 +29,6 @@ mkdir -p "$OUTDIR" "$LO_PROFILE"
 
 HOME="$LO_PROFILE" soffice --headless -env:UserInstallation=file://"$LO_PROFILE" \
   --convert-to pdf --outdir "$OUTDIR" "$INPUT"
-```
-
-Or use the wrapper:
-
-```bash
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out_lo --renderer libreoffice --emit_pdf
 ```
 
 ## About scary stderr on "successful" conversions
@@ -45,4 +42,3 @@ Prefer these success criteria over stderr:
 - Ensure the profile directory is unique per process (use `$$` or a uuid)
 - Delete stale profiles between runs
 - Prefer `/mnt/data` over `/tmp` if you suspect permission sandboxing
-- Return to `--renderer artifact-tool` if LibreOffice is unavailable or unreliable

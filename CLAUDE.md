@@ -45,6 +45,13 @@ ClaudeGuide/
 ├── claude-md/             # 프로젝트별 CLAUDE.md 백업/참조
 │   ├── gmarket-global-CLAUDE.md    # ~/.claude/CLAUDE.md
 │   └── gmarket-project-CLAUDE.md   # Gmarket/CLAUDE.md
+├── codex-md/              # Codex 전역 md 백업/배포
+│   ├── CODEX.md           # ~/.codex/CODEX.md
+│   └── AGENTS.md          # ~/.codex/AGENTS.md
+├── codex-skills/          # ~/.codex/skills/ 스냅샷
+│   ├── local/             # setup.sh 배포 대상
+│   └── system/            # Codex 기본 시스템 스킬 참고용
+├── codex-plugin-skills/   # Codex plugin cache 스킬 참고용 스냅샷
 └── docs/                  # 상세 참고 문서
     └── ui-domain-commonization-guide.md
 ```
