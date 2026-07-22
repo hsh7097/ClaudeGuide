@@ -1,7 +1,6 @@
 ---
 name: 공통화
-description: UI-도메인 공통화 작업 가이드. 공통화, Contract, Factory 패턴, 조합형/타입분기형 설계 시 참조.
-argument-hint: "[질문 또는 컴포넌트명] (선택)"
+description: UI-도메인 공통화 작업 가이드. 공통화, Contract, Factory, 조합형/타입분기형 설계, Params/State/Intent 책임 분리, 공통 UI 모듈과 도메인 모듈 경계 검토 시 사용한다.
 ---
 
 # UI-도메인 공통화 작업 가이드
@@ -9,6 +8,17 @@ argument-hint: "[질문 또는 컴포넌트명] (선택)"
 이 스킬은 도메인 종속 없이 UI를 공통화하는 표준 작업 방식을 정의한다.
 
 > **목적**: 도메인 비즈니스 로직의 변경이 UI 컴포넌트의 파손으로 이어지지 않도록 격리한다. UI 공통 모듈은 "그려지는 법"에만 집중하고, 도메인은 "무엇을 보여줄지"만 결정한다.
+
+---
+
+## 참고 문서
+
+| 문서 | 읽는 시점 |
+|---|---|
+| [references/patterns.md](references/patterns.md) | 조합형/타입분기형 구현 예시가 필요할 때 |
+| `docs/ui-domain-commonization-guide.md` | 실제 프로젝트 코드 예시, 테스트, 확장 고려가 필요할 때 |
+
+본문은 판단 기준과 경계 규칙만 먼저 사용한다. 예시 코드가 필요할 때만 reference를 연다.
 
 ---
 
@@ -99,91 +109,17 @@ data.infoLabels?.forEach { InfoLabelCompose(it) }
 
 **적용**: 한 UI 블록이 여러 하위 블록을 **동시에** 합성할 때
 
-```kotlin
-// 합 Contract — 하위 컴포넌트를 optional 프로퍼티로 조합
-interface CompositeData {
-    val sectionA: SectionAData?     get() = null
-    val sectionB: SectionBData?     get() = null
-    fun isNullOrEmpty(): Boolean
-    fun createDescriptionText(): String  // 접근성: 하위 설명 취합
-}
-
-// 도메인 Factory — 하위 Factory를 각각 호출하여 조립
-data class DomainCompositeData(...) : CompositeData {
-    companion object {
-        fun from(model: DomainModel) = DomainCompositeData(
-            sectionA = DomainSectionAData.from(model),
-            sectionB = DomainSectionBData.from(model),
-        )
-    }
-}
-
-// Renderer — Column으로 하위 Composable 합성 + Custom Content Slot
-@Composable
-fun CompositeCompose(
-    data: CompositeData,
-    sectionACustom: (@Composable () -> Unit)? = null,  // Custom Slot
-) {
-    Column {
-        if (sectionACustom != null) sectionACustom()
-        else data.sectionA?.let { SectionACompose(it) }
-        // 간격 관리는 합 Composable이 중앙화
-        if (showSectionB) Spacer(modifier = Modifier.height(4.dp))
-        data.sectionB?.let { SectionBCompose(it) }
-    }
-}
-```
-
 특징: Stateless / Intent 없음 / Custom Content Slot / 간격 중앙 관리
+
+상세 예시는 [references/patterns.md](references/patterns.md)의 "조합형"을 본다.
 
 ### 타입분기형 (Polymorphic Contract) — 배타적 분기
 
 **적용**: 같은 자리에서 타입별로 **하나만** 다른 UI를 렌더링할 때
 
-```kotlin
-// Contract — sealed interface + data class 서브타입
-sealed interface ActionData {
-    data class Landing(val url: String?) : ActionData
-    data class Refresh(val totalPageCount: Int) : ActionData
-    data class Expand(...) : ActionData
-}
-
-// State / Intent
-@Stable
-class ActionState {
-    var selectedPage by mutableIntStateOf(0)
-    fun advancePage(totalCount: Int): Int { ... }
-    fun resetForContextChange() { selectedPage = 0; expanded = false }
-}
-
-sealed interface ActionIntent {
-    data class RefreshPage(val totalCount: Int) : ActionIntent
-    data class SetExpanded(val expanded: Boolean) : ActionIntent
-}
-
-// 도메인 Factory — 타입 판정 + data class 생성
-object DomainActionFactory {
-    fun from(model: DomainModel, params: ActionParams): ActionData? {
-        return when {
-            params.isRefresh -> ActionData.Refresh(...)
-            model.hasLanding -> ActionData.Landing(...)
-            else -> ActionData.Expand(...)
-        }
-    }
-}
-
-// Router — sealed type 분기 (Router만 public, 하위는 private)
-@Composable
-fun ActionRouter(data: ActionData, state: ActionState, onAction: (ActionIntent) -> Unit) {
-    when (data) {
-        is ActionData.Landing -> LandingCompose(data, onAction)    // private
-        is ActionData.Refresh -> RefreshCompose(data, state, onAction) // private
-        is ActionData.Expand -> ExpandCompose(data, state, onAction)   // private
-    }
-}
-```
-
 특징: State + Intent 있음 / 분기 2단 제한(Factory + Router) / 하위 Composable private
+
+상세 예시는 [references/patterns.md](references/patterns.md)의 "타입분기형"을 본다.
 
 ### 패턴 선택 기준
 

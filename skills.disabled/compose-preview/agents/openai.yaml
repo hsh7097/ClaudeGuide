@@ -1,0 +1,4 @@
+interface:
+  display_name: "컴포즈 프리뷰"
+  short_description: "Gmarket debug Compose preview 생성 가이드"
+  default_prompt: "Use $컴포즈 프리뷰 to add a Gmarket debug Compose preview for the target composable."
