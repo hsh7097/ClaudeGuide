@@ -124,7 +124,7 @@ def _replace_in_text_node(
 def add_tracked_replacements(
     in_docx: str, out_docx: str, replaces: list[tuple[str, str]], author: str
 ) -> None:
-    when = _dt.datetime.now(_dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    when = _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
     with zipfile.ZipFile(in_docx, "r") as zin:
         overrides: dict[str, bytes] = {}
 

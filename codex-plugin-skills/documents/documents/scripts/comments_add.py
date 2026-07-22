@@ -132,10 +132,7 @@ def _append_comment(comments_root: etree._Element, comment_id: int, text: str, a
     c = etree.SubElement(comments_root, w("comment"))
     c.set(w("id"), str(comment_id))
     c.set(w("author"), author)
-    c.set(
-        w("date"),
-        _dt.datetime.now(_dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
-    )
+    c.set(w("date"), _dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z")
     p = etree.SubElement(c, w("p"))
     r_el = etree.SubElement(p, w("r"))
     t = etree.SubElement(r_el, w("t"))

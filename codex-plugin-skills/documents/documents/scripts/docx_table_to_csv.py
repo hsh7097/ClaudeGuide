@@ -69,4 +69,4 @@ if __name__ == "__main__":
         if os.environ.get("DOCS_DEBUG") == "1":
             raise
         print(f"[ERROR] {e}", file=sys.stderr)
-        raise SystemExit(2) from None
+        raise SystemExit(2)

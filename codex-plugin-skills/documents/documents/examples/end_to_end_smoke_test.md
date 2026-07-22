@@ -4,7 +4,7 @@ This is a quick checklist to validate the environment and the helper scripts.
 
 ## 1) Render check
 ```bash
-python render_docx.py /mnt/data/some.docx --output_dir /mnt/data/out --renderer artifact-tool
+python render_docx.py /mnt/data/some.docx --output_dir /mnt/data/out
 ```
 
 ## 2) Add header date, page numbers, hyperlink

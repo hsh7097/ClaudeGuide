@@ -27,7 +27,7 @@ python scripts/set_protection.py input.docx --mode off --out unprotected.docx
 ## Verification
 Render to PNGs (layout should be unchanged):
 ```bash
-python render_docx.py protected.docx --output_dir out_protected --renderer artifact-tool
+python render_docx.py protected.docx --output_dir out_protected
 ```
 
 ## Pitfalls

@@ -9,9 +9,8 @@
 | 트리거 키워드 | 유형 | 경로 | 설명 |
 |--------------|------|------|------|
 | `bi`, `BI`, `BI 작성`, `기술 공유 문서` | 스킬 `/bi` | `~/.claude/skills/bi-writing/SKILL.md` | BI(Bi-Weekly) 기술 공유 문서 작성 |
-| `공통화`, `UI 공통화`, `도메인 공통화`, `Contract`, `Factory 패턴` | 스킬 `/공통화` | 프로젝트 `.claude/skills/ui-commonization/SKILL.md` | UI-도메인 공통화 작업 가이드 |
-| `커밋`, `commit`, `푸시`, `push` | 스킬 `/커밋` | 프로젝트 `.claude/skills/safe-commit/SKILL.md` | 셀프 리뷰 후 안전 커밋 (브랜치 보호 포함) |
-| `재귀`, `재귀 검증`, `3번 검증`, `재귀 리뷰` | 스킬 `/재귀` | `~/.claude/skills/recursive-review/SKILL.md` | 3라운드 재귀 검증 (데이터흐름→유실/중복→동시성/메모리) |
+| `공통화`, `UI 공통화`, `도메인 공통화`, `Contract`, `Factory 패턴` | 스킬 `/공통화` | `~/.claude/skills/ui-commonization/SKILL.md` | UI-도메인 공통화 작업 가이드 |
+| `커밋`, `commit`, `푸시`, `push` | 스킬 `/커밋` | `~/.claude/skills/safe-commit/SKILL.md` | 셀프 리뷰 후 안전 커밋 (브랜치 보호 포함) |
 | `평가`, `연말평가`, `본인평가`, `성과 정리` | 가이드 | `~/.claude/guides/yearly-review.md` | 연말평가 본인평가 작성 |
 
 **사용 방법**:
@@ -24,12 +23,12 @@
 
 1. **작업 전**: ClaudeGuide 저장소를 최신 상태로 갱신
    ```bash
-   cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide && git pull
+   cd ~/Documents/Android/ClaudeGuide && git pull
    ```
 
 2. **작업 후**: 가이드/스킬 파일이 변경되었으면 자동으로 커밋 & push
    ```bash
-   cd C:\Users\hsh70\AndroidStudioProjects\ClaudeGuide && git add -A && git commit -m "가이드 업데이트: [변경 요약]" && git push
+   cd ~/Documents/Android/ClaudeGuide && git add -A && git commit -m "가이드 업데이트: [변경 요약]" && git push
    ```
 
 > 심볼릭 링크로 연결된 `~/.claude/guides/` 파일을 수정하면 ClaudeGuide 저장소의 원본이 변경된다. 반드시 커밋 & push 한다.

@@ -127,6 +127,12 @@ if [ "$1" = "--unlink" ]; then
         done
     fi
 
+    # Codex 전역 md 제거
+    if [ -d "$SCRIPT_DIR/codex-md" ]; then
+        remove_file "$CODEX_HOME/CODEX.md"
+        remove_file "$CODEX_HOME/AGENTS.md"
+    fi
+
     echo ""
     log_info "설정 제거 완료"
     exit 0
@@ -164,24 +170,7 @@ echo ""
 echo "--- 글로벌 CLAUDE.md ---"
 install_file "$SCRIPT_DIR/claude-md/gmarket-global-CLAUDE.md" "$CLAUDE_HOME/CLAUDE.md"
 
-# 3.5. Hook 스크립트 배포
-HOOKS_DIR="$CLAUDE_HOME/hooks"
-echo ""
-echo "--- Hook 스크립트 배포 ---"
-if [ -d "$SCRIPT_DIR/hooks" ] && ls "$SCRIPT_DIR"/hooks/*.sh >/dev/null 2>&1; then
-    mkdir -p "$HOOKS_DIR"
-    for hook in "$SCRIPT_DIR"/hooks/*.sh; do
-        [ -f "$hook" ] || continue
-        filename=$(basename "$hook")
-        install_file "$hook" "$HOOKS_DIR/$filename"
-        # 실행 권한 부여 (복사 모드에서도)
-        chmod +x "$HOOKS_DIR/$filename" 2>/dev/null
-    done
-else
-    log_info "hooks/ 디렉토리 없음. Hook 배포 건너뜀."
-fi
-
-# 3.6. 전역 스킬 배포 (~/.claude/skills/)
+# 3.5. 전역 스킬 배포 (~/.claude/skills/)
 GLOBAL_SKILLS_DIR="$CLAUDE_HOME/skills"
 echo ""
 echo "--- 전역 스킬 배포 ---"
@@ -193,7 +182,7 @@ for skill_dir in "$SCRIPT_DIR"/skills/*/; do
     install_tree "$skill_dir" "$target_dir"
 done
 
-# 3.7. Codex 로컬 스킬 배포 (~/.codex/skills/)
+# 3.6. Codex 로컬 스킬 배포 (~/.codex/skills/)
 CODEX_SKILLS_DIR="$CODEX_HOME/skills"
 echo ""
 echo "--- Codex 로컬 스킬 배포 ---"
@@ -208,6 +197,17 @@ if [ -d "$SCRIPT_DIR/codex-skills/local" ]; then
     done
 else
     log_info "codex-skills/local 디렉토리 없음. Codex 스킬 배포 건너뜀."
+fi
+
+# 3.7. Codex 전역 md 배포 (~/.codex/CODEX.md, ~/.codex/AGENTS.md)
+echo ""
+echo "--- Codex 전역 md 배포 ---"
+mkdir -p "$CODEX_HOME"
+if [ -d "$SCRIPT_DIR/codex-md" ]; then
+    [ -f "$SCRIPT_DIR/codex-md/CODEX.md" ] && install_file "$SCRIPT_DIR/codex-md/CODEX.md" "$CODEX_HOME/CODEX.md"
+    [ -f "$SCRIPT_DIR/codex-md/AGENTS.md" ] && install_file "$SCRIPT_DIR/codex-md/AGENTS.md" "$CODEX_HOME/AGENTS.md"
+else
+    log_info "codex-md 디렉토리 없음. Codex 전역 md 배포 건너뜀."
 fi
 
 # 4. 프로젝트별 스킬 자동 배포 (추가 프로젝트용, 전역과 별도)
@@ -277,4 +277,5 @@ echo "  ls -la $GUIDES_DIR/"
 echo "  ls -la $CLAUDE_HOME/CLAUDE.md"
 echo "  ls -la $CLAUDE_HOME/skills/"
 echo "  ls -la $CODEX_HOME/skills/"
+echo "  ls -la $CODEX_HOME/CODEX.md $CODEX_HOME/AGENTS.md"
 echo ""

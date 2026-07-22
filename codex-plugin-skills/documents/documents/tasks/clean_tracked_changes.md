@@ -28,7 +28,7 @@ Many “looks wrong” reports come from:
    ```
 3. **Render → PNG review** (required):
    ```bash
-   python render_docx.py accepted.docx --output_dir out_accept --renderer artifact-tool
+   python render_docx.py accepted.docx --output_dir out_accept
    ```
 
 ## Render → PNG review checklist

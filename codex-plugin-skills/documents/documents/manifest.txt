@@ -23,7 +23,6 @@ tasks/fields_update.md
 tasks/create_edit.md
 tasks/toc_workflow.md
 tasks/multi_doc_merge.md
-assets/file-document.png
 manifest.txt
 ooxml/comments.md
 ooxml/rels_and_content_types.md
@@ -31,6 +30,8 @@ ooxml/tracked_changes.md
 ooxml/hyperlinks_and_fields.md
 troubleshooting/libreoffice_headless.md
 troubleshooting/run_splitting.md
+references/design_presets.md
+references/header_templates.md
 examples/end_to_end_smoke_test.md
 scripts/watermark_audit_remove.py
 scripts/internal_nav.py
@@ -51,7 +52,7 @@ scripts/fields_report.py
 scripts/captions_and_crossrefs.py
 scripts/watermark_add.py
 scripts/render_and_diff.py
-scripts/render_docx_artifact_tool.mjs
+scripts/table_geometry.py
 scripts/comments_add.py
 scripts/insert_toc.py
 scripts/flatten_ref_fields.py

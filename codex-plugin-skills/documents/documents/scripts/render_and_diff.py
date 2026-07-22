@@ -13,7 +13,7 @@ Outputs an easy-to-browse directory:
 
 Visual diff
 -----------
-We render both DOCXs to PNGs via render_docx.py (artifact-tool by default) and then
+We render both DOCXs to PNGs via render_docx.py (LibreOffice headless) and then
 diff each corresponding page using Pillow. We compute differences in RGB (not
 RGBA) because alpha-only differences can cause getbbox() to return None.
 

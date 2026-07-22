@@ -21,10 +21,6 @@ ClaudeGuide/
 │   ├── bi-writing.md
 │   ├── yearly-review.md
 │   └── karpathy-guidelines.md
-├── hooks/                 # ~/.claude/hooks/ 에 배포될 자동 Hook 스크립트
-│   ├── risky-keyword-review.sh   # 위험 키워드 감지 → 경량 리뷰
-│   ├── large-code-review.sh      # 80줄 이상 코드 → 경량 검수
-│   └── session-length-check.sh   # 25턴 이상 → /정리 제안
 ├── skills/                # 프로젝트 .claude/skills/ 에 자동 배포될 스킬
 │   ├── dev-mode/          # /개발 — 기본 실행 모드 (최소 변경 + 자기 검수)
 │   │   └── SKILL.md
@@ -45,6 +41,13 @@ ClaudeGuide/
 ├── claude-md/             # 프로젝트별 CLAUDE.md 백업/참조
 │   ├── gmarket-global-CLAUDE.md    # ~/.claude/CLAUDE.md
 │   └── gmarket-project-CLAUDE.md   # Gmarket/CLAUDE.md
+├── codex-md/              # Codex 전역 md 백업/배포
+│   ├── CODEX.md           # ~/.codex/CODEX.md
+│   └── AGENTS.md          # ~/.codex/AGENTS.md
+├── codex-skills/          # ~/.codex/skills/ 스냅샷
+│   ├── local/             # setup.sh 배포 대상
+│   └── system/            # Codex 기본 시스템 스킬 참고용
+├── codex-plugin-skills/   # Codex plugin cache 스킬 참고용 스냅샷
 └── docs/                  # 상세 참고 문서
     └── ui-domain-commonization-guide.md
 ```

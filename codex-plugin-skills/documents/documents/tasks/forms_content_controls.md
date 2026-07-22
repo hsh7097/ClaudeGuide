@@ -29,7 +29,7 @@ python scripts/content_controls.py /mnt/data/template_sdt.docx fill \
 
 4. **Render for QA**
 ```bash
-python render_docx.py /mnt/data/filled.docx --output_dir /mnt/data/out_forms --renderer artifact-tool
+python render_docx.py /mnt/data/filled.docx --output_dir /mnt/data/out_forms
 ```
 Inspect `page-<N>.png` at 100% zoom.
 

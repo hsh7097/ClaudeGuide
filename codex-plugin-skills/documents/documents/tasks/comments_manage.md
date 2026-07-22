@@ -62,7 +62,7 @@ If the requested deliverable is a **clean final DOCX**:
 ```bash
 python scripts/accept_tracked_changes.py input.docx --mode accept --out accepted.docx
 python scripts/comments_strip.py accepted.docx --out final_clean.docx
-python render_docx.py final_clean.docx --output_dir out_final_clean --renderer artifact-tool
+python render_docx.py final_clean.docx --output_dir out_final_clean
 ```
 
 ## Pitfalls

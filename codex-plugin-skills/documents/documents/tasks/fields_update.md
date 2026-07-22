@@ -27,7 +27,7 @@ If you see `TOC`, `REF`, `PAGEREF`, `NUMPAGES`, or `PAGE`, plan for a field refr
 ### 2) Render and inspect
 
 ```bash
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --renderer artifact-tool
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out
 ```
 
 Inspect all `page-*.png` at 100% zoom.

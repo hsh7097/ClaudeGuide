@@ -1,6 +1,6 @@
 ---
 name: documents
-description: Create, edit, redline, and comment on `.docx` files inside the container, with a strict artifact-tool render-and-verify workflow. Use `render_docx.py --renderer artifact-tool` to generate page PNGs for visual QA, then iterate until layout is flawless before delivering the final DOCX.
+description: Create, edit, redline, and comment on `.docx` files inside the container, with a strict render-and-verify workflow. Use `render_docx.py` to generate page PNGs (and optional PDF) for visual QA, then iterate until layout is flawless before delivering the final DOCX.
 ---
 
 # Documents Skill (Read • Create • Edit • Redline • Comment)
@@ -20,16 +20,81 @@ Use this skill when you need to create or modify `.docx` files **in this contain
 DOCX text extraction (or reading XML) will miss layout defects: clipping, overlap, missing glyphs, broken tables, spacing drift, and header/footer issues.
 
 **Shipping gate:** before delivering any DOCX, you must:
-- Run `render_docx.py --renderer artifact-tool` to produce `page-<N>.png` images
+- Run `render_docx.py` to produce `page-<N>.png` images (optionally also a PDF with `--emit_pdf`)
 - Open the PNGs (100% zoom) and confirm every page is clean
 - If anything looks off, fix the DOCX and **re-render** (repeat until flawless)
 
-If artifact-tool rendering fails, fix rendering first rather than guessing. Do not ship a DOCX based on XML/text inspection alone.
+If rendering fails because LibreOffice/`soffice` is missing, it is acceptable to return the requested DOCX without rendered PNG QA. In that fallback case, use the relevant Markdown task docs in this skill package as the authoritative guidance for building and checking the document structurally, state clearly in the final response that rendering/visual QA could not be completed, and do not imply that the document passed the render gate.
 
-**Deliverable discipline:** Rendered artifacts (PNGs and optional LibreOffice PDFs) are for internal QA only. Unless the user explicitly asks for intermediates, **return only the requested final deliverable** (e.g., when the task asks for a DOCX, deliver the DOCX — not page images or PDFs).
+If rendering fails for any other reason, fix rendering first (LibreOffice profile/HOME, conversion errors, or renderer setup) rather than guessing.
+
+**Deliverable discipline:** Rendered artifacts (PNGs and optional PDFs) are for internal QA only. Unless the user explicitly asks for intermediates, **return only the requested final deliverable** (e.g., when the task asks for a DOCX, deliver the DOCX — not page images or PDFs).
 
 
 
+
+## Design Preset Contract
+
+For new DOCX creation and major rewrites, a design preset is mandatory unless the user explicitly asks for a different visual system. For existing-document edit tasks, preserve the original document and apply the minimal local edits described later in this skill.
+
+Picking a preset is not enough. You must resolve the preset into exact numeric tokens and apply those numbers in the DOCX implementation. Do not rely on Word defaults, built-in list styles, theme defaults, inherited paragraph spacing, or renderer-dependent behavior for any preset-controlled value.
+
+Before writing content, read `references/design_presets.md` and choose exactly one preset:
+
+- `google_docs_default` for any net-new document whose destination is a native Google Doc, unless the user explicitly asks for a special, branded, or highly polished visual treatment.
+- `standard_business_brief` for formal memos, RFI responses, decision memos, and board-style briefs.
+- `compact_reference_guide` for launch guides, negotiation briefs, checklists, and dense operator references.
+- `narrative_proposal` for grants, proposals, and persuasive documents with longer prose.
+- Use an archetype alias from the reference file when it is a closer match: `rfi_response`, `decision_memo`, `launch_messaging_guide`, `contract_negotiation_brief`, `neighborhood_business_proposal`, or `grant_proposal`.
+
+If the destination is Google Docs, choose `google_docs_default`. Google Docs-targeted documents should feel native: Arial-based typography, black hierarchy, simple title treatment.
+
+If creating a new first-page header, cover, or title block for a non-Google-docs document, also read `references/header_templates.md` and choose one header pattern before drafting. For `google_docs_default`, keep the opening block simple unless the user explicitly requests richer first-page furniture.
+
+Then resolve the preset into a token map and apply the tokens consistently:
+
+1. Set page, margin, type scale, paragraph rhythm, heading, list, table, callout, header, footer, and color tokens before drafting. For `google_docs_default`, that means explicitly carrying the simple Google Docs defaults instead of inheriting the more polished Word-oriented defaults above.
+2. Implement those tokens through Word styles, real numbering definitions, explicit table geometry, and header/footer parts. Do not fake headings, lists, or tables with one-off direct formatting.
+3. Use ad-hoc formatting only when the document needs a specific exception; record the exception as a named override and reuse it consistently wherever that role appears.
+4. Keep the preset stable throughout the document. Do not mix body spacing, heading colors, list indents, table fills, or page furniture from multiple presets.
+
+Baseline geometry for all presets: US Letter portrait, 1 inch margins, 9360 DXA usable width, real Word styles for Normal/Title/Subtitle/Heading 1/Heading 2/Heading 3, real Word numbering for lists, and DXA table widths only.
+
+Tables must use explicit Word geometry. Build rows first, compute exact DXA column widths, then use `scripts/table_geometry.py` or equivalent logic so `tblW`, `tblInd`, `tblGrid`, and every `tcW` agree. Set table indent to the start cell margin token (`120` DXA by default) so the visible outer border aligns with surrounding paragraph text. Do not rely on autofit, percentage widths, centered default tables, fixed row heights, or tables as layout/divider hacks.
+
+Lists must use real numbering definitions. Never create fake bullets with Unicode bullet text, hyphen-prefixed paragraphs, manual numbers, or newline-separated list items inside one paragraph. Wrapped list lines must align under the item text, not under the marker.
+
+Before final render review, run a preset audit: page geometry, styles, heading spacing/colors, list indents, table widths/table indents/cell margins, callout fills, headers/footers, and direct-formatting exceptions must match the selected token map. Also check for fake headings, fake bullets, missing table geometry, clipped/pinned table text, inconsistent page furniture, and unexplained direct formatting drift.
+
+## Form factor selection
+
+For new DOCX creation and major rewrites, choose content form factors deliberately before drafting. Start from the information type, then calibrate the structure to the document archetype. Use the lightest readable structure that helps the reader understand, compare, act on, or fill in the information with the least friction.
+
+First map each major content unit to a form factor:
+
+- PROSE SECTION: narrative, explanation, background, or rationale. Use paragraphs under clear headings, with short supporting bullets only when they improve skimming.
+- LEAD CALLOUT: decision, recommendation, or key takeaway. Use a short labeled paragraph, callout, or lead paragraph followed by concise rationale.
+- NUMBERED STEPS: sequence, workflow, or procedure. Use step blocks with clear action verbs; add owner/status fields only when they are central to execution.
+- GROUPED BULLETS: loose factors, considerations, pros/cons, or requirements. Use bullets or short subsections when order is not the main point.
+- CHECKLIST: actions, acceptance checks, or review criteria. Use compact labels and enough spacing to scan.
+- NOTE BOX: warnings, caveats, constraints, or important notes. Use a callout with restrained emphasis.
+- DEFINITION LIST: definitions, metadata, or key facts. Use labeled paragraphs, definition lists, or compact key-value blocks.
+- TABLE: repeated comparable records, status grids, budgets, RFI/compliance matrices, or schedules with shared fields.
+- FORM LAYOUT: forms and questionnaires. Use readable fields, sectioning, and response space; use grids only where repeated response structure helps completion.
+- SOURCE LIST: evidence, citations, and sources. Use footnotes, endnotes, short source lists, or appendices according to document type and density.
+
+### Table Gate
+
+Use a table only when the content is truly row/column data: repeated items, shared fields, and useful comparison or lookup.
+
+Do not use tables to package normal prose. If cells become mini-paragraphs, switch to prose sections, bullets, steps, checklists, callouts, or appendix material.
+
+Before finalizing, run a table-overuse audit:
+
+- If most cells in a table are sentence- or paragraph-length prose, convert that section to prose, bullets, steps, callouts, or labeled paragraphs.
+- If two or more adjacent sections use tables, check whether at least one should become bullets or paragraphs for readability.
+
+During render review, check content diversity and archetype fit. If multiple adjacent components use the same visual form, decide whether one should become prose, bullets, steps, a callout, or an appendix. The goal is not variety for its own sake; it is to match form to reading task and document purpose.
 
 ## Design standards for document generation
 
@@ -43,10 +108,11 @@ It is very important that the document is professional and aesthetically pleasin
    - Before creating the document, decide what kind of document it is (for example, a memo, report, SOP, workflow, form, proposal, or manual) and design accordingly. In general, you shall create documents which are professional, visually polished, and aesthetically pleasing. However, you should also calibrate the level of styling to the document's purpose: for formal, serious, or highly utilitarian documents, visual appeal should come mainly from strong typography, spacing, hierarchy, and overall polish rather than expressive styling. The goal is for the document's visual character to feel appropriate to its real-world use case, with readability and usability always taking priority.
    - You should make documents that feel visually natural. If a human looks at your document, they should find the design natural and smooth. This is very important; please think carefully about how to achieve this.
    - Think about how you would like the first page to be organized. How about subsequent pages? What about the placement of the title? What does the heading ladder look like? Should there be a clear hierarchy? etc
-   - Would you like to include visual components, such as tables, callouts, checklists, images, etc? If yes, then plan out the design for each component.
+   - Which form factors should represent each type of information, such as prose sections, bullets, numbered steps, checklists, callouts, tables, forms, images, or appendices? Plan the design for each chosen component.
    - Think about the general spacing and layout. What will be the default body spacing? What page budget is allocated between packaging and substance? How will page breaks behave around tables and figures, since we must make sure to avoid large blank gaps, keep captions and their visuals together when possible, and keep content from becoming too wide by maintaining generous side margins so the page feels balanced and natural.
    - Think about font, type scale, consistent accent treatment, etc. Try to avoid forcing large chunks of small text into narrow areas. When space is tight, adjust font size, line breaks, alignment, or layout instead of cramming in more text.
-2. Once you have a working DOCX, continue iterating until the entire document is polished and correct. After every change or edit, render the DOCX and review it carefully to evaluate the result. The plan from (1) should guide you, but it is only a flexible draft; you should update your decisions as needed throughout the revision process. Important: each time you render and reflect, you should check for both:
+2. Once you have a working DOCX, continue iterating until the entire document is polished and correct. After every change or edit, render the DOCX and review it carefully to evaluate the result. If LibreOffice/`soffice` is missing, continue using the relevant Markdown task docs in this skill package for structural QA and document-design guidance, and disclose that visual render QA was skipped. The plan from (1) should guide you, but it is only a flexible draft; you should update your decisions as needed throughout the revision process. Important: each time you render and reflect, you should check for both:
+
    1. Design aesthetics: the document should be aesthetically pleasing and easy to skim. Ask yourself: if a human were to look at my document, would they find it aesthetically nice? It should feel natural, smooth, and visually cohesive.
    2. Formatting issues that need to be fixed: e.g. text overlap, overflow, cramped spacing between adjacent elements, awkward spacing in tables/charts, awkward page breaks, etc. This is super important. Do not stop revising until all formatting issues are fixed.
 
@@ -55,7 +121,7 @@ While making and revising the DOCX, please adhere to and check against these qua
 - Document density: Try to avoid having verbose dense walls of text, unless it's necessary. Avoid long runs of consecutive plain paragraphs or too many words before visual anchors. For some tasks this may be necessary (i.e. verbose legal documents); in those cases ignore this suggestion.
 - Font: Use professional, easy-to-read font choices with appropriate size that is not too small. Usage of bold, underlines, and italics should be professional.
 - Color: Use color intentionally for titles, headings, subheadings, and selective emphasis so important information stands out in a visually appealing way. The palette and intensity should fit the document's purpose, with more restrained use where a formal or serious tone is needed.
-- Visuals: Consider using tables, diagrams, and other visual components when they improve comprehension, navigation, or usability.
+- Visuals: Consider using varied form factors, including diagrams and other visual components, when they improve comprehension, navigation, or usability.
 - Tables: Please invest significant effort to make sure your tables are well-made and aesthetically/visually good. Below are some suggestions, as well as some hard constraints that you must relentlessly check to make sure your table satisfies them.
   - Suggestions:
     - Set deliberate table/cell widths and heights instead of defaulting to full page width.
@@ -83,7 +149,6 @@ While making and revising the DOCX, please adhere to and check against these qua
   - For example, if a table must span across pages, continue to the next page with a repeated header and consistent column order
 - Background shapes/colors: Where helpful, consider section bands, note boxes, control grids, or other visual containers with suitable colors to improve scanability and communication. Use them when they suit the document type. If you do use these, make sure they are formatted well, with no overlaps, awkward spacing, etc.
 - Spacing: Please check rigorously for spacing issues. Please always use a natural amount of spacing between adjacent components. Use clear, generous vertical spacing between sections and paragraphs, and leave a bit of extra space between subheadings and the content that follows when it improves readability. Use indentation and alignment intentionally so the document's hierarchy is immediately clear. At the same time, avoid large "layout gaps" caused by a table or chart not fitting at the bottom of a page and getting pushed to the next one. If this happens, please try these suggestions:
-  - moving the preceding paragraph(s) with it to the next page to keep the narrative cohesive
   - scaling the visual modestly or simplify labels without hurting readability, formatting, or aesthetics of the visual
   - Splitting the table/figure cleanly across multiple pages, but use repeated headers to make the page continuation clear.
 - Text boxes: For text boxes, please follow the same breathing-room rules as the tables: make sure to use generous internal padding, intentional alignment, and sufficient line spacing so text never feels cramped, clipped, or pinned to the edges. Keep spacing around the text box clear so it remains visually distinct from surrounding content, and if the content feels tight, prefer adjusting box size, padding, or text wrapping before reducing font size.
@@ -101,8 +166,10 @@ When the user asks to edit an existing document, preserve the original and make 
 ## Quick start (common one-liners)
 
 ```bash
-# 1) Render any DOCX to PNGs with artifact-tool (visual QA)
-python render_docx.py input.docx --output_dir out --renderer artifact-tool
+# 1) Render any DOCX to PNGs (visual QA)
+python render_docx.py input.docx --output_dir out
+# macOS/Codex desktop: start Python with a stable temp dir to avoid soffice aborts
+env TMPDIR=/private/tmp python render_docx.py input.docx --output_dir out
 
 # 2) Remove reviewer comments (finalization)
 python scripts/comments_strip.py input.docx --out no_comments.docx
@@ -128,7 +195,11 @@ DOCS SKILL PACKAGE
 Root:
 - SKILL.md: short overview + routing
 - manifest.txt: machine-readable list of files to download (one relative path per line)
-- render_docx.py: canonical DOCX→PNG renderer (artifact-tool by default; optional LibreOffice cross-check)
+- render_docx.py: canonical DOCX→PNG renderer (container-safe LO profile + writable HOME + verbose logs)
+
+References:
+- references/design_presets.md: preset-first design tokens, archetype aliases, OOXML conversions, and preset audit checklist
+- references/header_templates.md: concise first-page header pattern picker and code snippets
 
 Tasks:
 - tasks/read_review.md
@@ -166,10 +237,10 @@ Scripts:
 **Core building blocks (importable helpers):**
 - `scripts/docx_ooxml_patch.py` — low-level OOXML patch helper (tracked changes, comments, hyperlinks, relationships). Other scripts reuse this.
 - `scripts/fields_materialize.py` — materialize `SEQ`/`REF` field *display text* for deterministic headless rendering/QA.
+- `scripts/table_geometry.py` — apply/audit exact Word table geometry for python-docx tables (`tblW`, `tblInd`, `tblGrid`, and every `tcW` match).
 
 **High-leverage utilities (also importable, but commonly invoked as CLIs):**
-- `render_docx.py` — canonical DOCX → PNG renderer (artifact-tool by default; optional LibreOffice PDF via `--renderer libreoffice --emit_pdf`; do not deliver intermediates unless asked).
-- `scripts/render_docx_artifact_tool.mjs` — artifact-tool DOCX → per-page PNG renderer used by `render_docx.py --renderer artifact-tool`.
+- `render_docx.py` — canonical DOCX → PNG renderer (optional PDF via `--emit_pdf`; do not deliver intermediates unless asked).
 - `scripts/render_and_diff.py` — render + per-page image diff between two DOCXs.
 - `scripts/content_controls.py` — list / wrap / fill Word content controls (SDTs) for forms/templates.
 - `scripts/captions_and_crossrefs.py` — insert Caption paragraphs for tables/figures + optional bookmarks around caption numbers.
@@ -219,6 +290,7 @@ This is a quick index so you can jump from a helper script to the right task gui
 - `captions_and_crossrefs.py` → `tasks/captions_crossrefs.md`
 
 ### Tables / spreadsheets
+- `table_geometry.py` → root `Design Preset Contract` table geometry rules
 - `xlsx_to_docx_table.py` → `tasks/tables_spreadsheets.md`
 - `docx_table_to_csv.py` → `tasks/tables_spreadsheets.md`
 
@@ -251,6 +323,7 @@ This is a quick index so you can jump from a helper script to the right task gui
 
 ## Skill folder contents
 - `tasks/` — task playbooks (what to do step-by-step)
+- `references/` — compact reference material loaded only when needed, including design presets
 - `ooxml/` — advanced OOXML patches (tracked changes, comments, hyperlinks, fields)
 - `scripts/` — reusable helper scripts
 - `examples/` — small runnable examples
@@ -269,14 +342,16 @@ This is a quick index so you can jump from a helper script to the right task gui
 6. **Deliver only after the latest PNG review passes** (all pages, 100% zoom).
 
 ## Visual review (recommended)
-Use the packaged renderer. In this skill it defaults to artifact-tool and emits `page-<N>.png` images:
+Use the packaged renderer (dedicated LibreOffice profile + writable HOME):
 
 ```bash
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --renderer artifact-tool
-# If debugging artifact-tool:
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --renderer artifact-tool --verbose
-# Optional LibreOffice cross-check with a PDF artifact:
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out_lo --renderer libreoffice --emit_pdf
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out
+# macOS/Codex desktop:
+env TMPDIR=/private/tmp python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out
+# If debugging LibreOffice:
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --verbose
+# Optional: also write <input_stem>.pdf to --output_dir (for debugging/archival):
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --emit_pdf
 ```
 
 Then inspect the generated `page-<N>.png` files.
@@ -287,7 +362,7 @@ Then inspect the generated `page-<N>.png` files.
 - **Inspect every page at 100% zoom** (no “spot check” for final delivery)
 - No clipping/overlap, no broken tables, no missing glyphs, no header/footer misplacement
 
-**Note:** artifact-tool PNG rendering satisfies this skill's visual QA gate. LibreOffice is optional for cross-checking when it is already available; `--emit_pdf` only works with `--renderer libreoffice`.
+**Note:** LibreOffice sometimes prints scary-looking stderr (e.g., `error : Unknown IO error`) even when output is correct. Treat the render as successful if the PNGs exist and look right (and if you used `--emit_pdf`, the PDF exists and is non-empty).
 
 ### What rendering does and doesn’t validate
 
@@ -322,10 +397,11 @@ Then inspect the generated `page-<N>.png` files.
 - If you need **tracked changes (redlines)**: `ooxml/tracked_changes.md`
 - If you need **comments**: `ooxml/comments.md`
 - If you need **hyperlinks/fields/page numbers/headers**: `ooxml/hyperlinks_and_fields.md`
-- If LibreOffice headless is failing or unavailable: keep using artifact-tool; see `troubleshooting/libreoffice_headless.md` only for optional cross-checks.
+- If LibreOffice headless is failing: `troubleshooting/libreoffice_headless.md`
 - If you need a **clean copy** with tracked changes accepted: `tasks/clean_tracked_changes.md`
 - If you need to **diff two DOCXs** (render + per-page diff): `tasks/compare_diff.md`
 - If you need **templates / style packs (DOTX)**: `tasks/templates_style_packs.md`
+- If you need a **first-page header / cover / title block**: `references/header_templates.md`
 - If you need **watermark audit/removal**: `tasks/watermarks_background.md`
 - If you need **true footnotes/endnotes**: `tasks/footnotes_endnotes.md`
 - If you want reproducible fixtures for edge cases: `tasks/fixtures_edge_cases.md`

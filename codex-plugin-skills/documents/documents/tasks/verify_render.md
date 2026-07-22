@@ -4,17 +4,19 @@
 DOCX editing tools can "succeed" while the visual output is broken. Always verify by rendering.
 
 ## Preferred: use the packaged renderer
-This uses artifact-tool and produces `page-<N>.png` images. These PNGs satisfy the visual QA gate for this skill.
+This uses a dedicated LibreOffice profile + writable HOME and produces `page-<N>.png` images:
 
 ```bash
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --renderer artifact-tool
-# For debugging artifact-tool failures:
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --verbose --renderer artifact-tool
-# Optional LibreOffice cross-check with <input_stem>.pdf:
-python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out_lo --renderer libreoffice --emit_pdf
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out
+# macOS/Codex desktop: start Python with a stable temp dir to avoid soffice aborts
+env TMPDIR=/private/tmp python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out
+# For debugging LibreOffice failures:
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --verbose
+# Optional: also write <input_stem>.pdf to --output_dir (for debugging/archival):
+python render_docx.py /mnt/data/input.docx --output_dir /mnt/data/out --emit_pdf
 ```
 
-## Optional manual LibreOffice cross-check
+## Manual render command (if you need it)
 Use a unique LibreOffice profile (permission/locking issues are common in containers):
 
 ```bash
@@ -44,8 +46,8 @@ pdftoppm -png "$OUTDIR/$BASENAME.pdf" "$OUTDIR/$BASENAME"
 - header/footer alignment and page breaks
 
 ## Caveats
-- **Comments often don’t render** in page images. Use structural checks for comments.
-- **Field codes (page numbers, TOC)** may show placeholder values in some renders. If the user needs proof, re-check in Word or update fields before final render.
+- **Comments often don’t render** in headless LibreOffice PDFs. Use structural checks for comments.
+- **Field codes (page numbers, TOC)** may show placeholder values in some PDF renders. If the user needs proof, re-check in Word or update fields before final render.
 - **Multi-section docs** can have different page sizes/orientations; DPI is computed from the first section by default. If some pages look scaled oddly, use `--dpi` to override.
 
 ## Delivery checklist

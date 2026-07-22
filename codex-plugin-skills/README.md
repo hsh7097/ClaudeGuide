@@ -8,6 +8,8 @@ plugin cache 스킬은 일반적으로 plugin 설치/업데이트 과정에서 �
 ## 포함 범위
 
 - Browser Use
+- Figma
+- Frontend Design
 - GitHub
 - Gmail
 - Notion
